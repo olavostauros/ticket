@@ -1,8 +1,9 @@
 # PLAN-003: Consolidate Three Repos into a Single Monorepo
 
-**Status:** Draft  
+**Status:** ✅ Done  
 **Author:** Agent (grill session output)  
 **Date:** 2026-07-01  
+**Execution date:** 2026-07-01  
 
 ---
 
@@ -27,7 +28,7 @@ Currently `ticket/` is already a monorepo *on disk* — all three directories si
 ```
 ticket/                          ← root of the single git repo
 ├── .git/
-├── AGENTS.md                    ← stays at root (moved from ticket/ root)
+├── AGENTS.md                    ← stays at root
 ├── .agents/                     ← pi agent config (stays)
 ├── skills-lock.json             ← stays at root
 ├── ticket-app/                  ← Next.js app (Vercel rootDirectory)
@@ -50,29 +51,19 @@ No changes to directory layout — it's already correct. Only the `.git/` direct
 
 ---
 
-## 3. Migration Steps
+## 3. Migration Steps Executed
 
-### Step 1: Clean working trees
+### Step 1: Commit pending work
 
-Ensure all three repos have zero uncommitted changes.
+All three repos had uncommitted changes. They were committed to their respective repos first (to preserve history):
 
-```bash
-cd /home/stauros-ticket/ticket
+- **ticket-app:** `[ticket-app]: Improve login form UX — client-side validation, password toggle, Portuguese error messages, rate-limit handling`
+- **ticket-database:** `[ticket-database]: Enable RLS with DENY-ALL policies on all public tables`
+- **ticket-agent:** `[ticket-agent]: Add PLAN-003 — monorepo consolidation`
 
-# Check each repo
-for d in ticket-app ticket-database ticket-agent; do
-  echo "=== $d ==="
-  cd "$d"
-  git status --short
-  cd ..
-done
-```
+Also fixed: `.env.vercel` and `supabase/.temp/` were accidentally committed — removed from commit and added to `.gitignore`.
 
-If anything is dirty, commit or stash it.
-
-### Step 2: Create a new root git repo with one remote
-
-Create a new GitHub repository called `ticket` (or `ticket-platform`) under the `olavostauros` account, then:
+### Step 2: Create new root git repo
 
 ```bash
 cd /home/stauros-ticket/ticket
@@ -82,39 +73,20 @@ rm -rf ticket-app/.git ticket-database/.git ticket-agent/.git
 
 # Initialize a fresh repo at the root
 git init
-git add .
+git branch -m main
+git add -A
 git commit -m "[root]: Initial monorepo commit — consolidate ticket-app, ticket-database, ticket-agent"
 
-# Add the new remote
-git remote add origin git@github.com:olavostauros/ticket.git
-
-# Push
-git branch -M main
+# Add the new remote and push
+git remote add origin https://github.com/olavostauros/ticket-platform.git
 git push -u origin main
 ```
 
-> ⚠️ **Historical commits are lost.** There is no merge of histories — this is a fresh commit. If preserving history matters, use `git filter-repo` to transplant each sub-repo's history into subdirectories (much more complex). For an MVP project with few commits, a fresh start is acceptable.
+Note: `ticket` was already archived on GitHub, so `ticket-platform` was used instead. Created via `gh repo create olavostauros/ticket-platform --private --push --source=.`
 
-### Step 3: Configure Vercel to build from `ticket-app/`
+### Step 3: Configure Vercel rootDirectory
 
-The Vercel project is already created and linked to `ticket-app`. After the monorepo change, tell Vercel where to find the Next.js app:
-
-**Option A — CLI (recommended):**
-
-```bash
-cd /home/stauros-ticket/ticket/ticket-app
-npx vercel project settings --root-directory ticket-app
-```
-
-**Option B — Vercel Dashboard:**
-
-1. Go to [vercel.com/olavostauros/ticket-app/settings](https://vercel.com/olavostauros/ticket-app/settings)
-2. Under **Root Directory**, set it to `ticket-app/`
-3. Under **Build Command**, verify it's `next build` (default)
-4. Under **Output Directory**, verify it's `.next` (default)
-
-**Option C — vercel.json (at repo root):**
-
+Added to `ticket-app/vercel.json`:
 ```json
 {
   "rootDirectory": "ticket-app",
@@ -123,135 +95,72 @@ npx vercel project settings --root-directory ticket-app
 }
 ```
 
-> Note: Vercel's `rootDirectory` tells Vercel which subdirectory to `cd` into before running the build. Currently `vercel.json` lives inside `ticket-app/`, which works because the whole repo *was* `ticket-app/`. After the monorepo change, Vercel needs the root directory to be set explicitly so it finds `ticket-app/package.json`.
+### Step 4: Update `.gitignore`
 
-### Step 4: Update `.gitignore` rules
-
-The current `ticket-app/.gitignore` has lines that were correct when `ticket-app/` was its own repo but are now harmful:
-
-```gitignore
-# Remove these — they are part of the monorepo now
-ticket-agent/
-supabase/migrations/
-supabase/seed.sql
-```
-
-The root `.gitignore` should live at `ticket/.gitignore` and cover the whole repo:
-
-```gitignore
-# dependencies
-node_modules/
-.pnp
-.pnp.js
-
-# testing
-coverage/
-
-# next.js
-.next/
-out/
-
-# production
-build/
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# pi agent sessions & config
-.pi/
-
-# local env files
-.env
-.env*.local
-.env.*.local
-
-# supabase temp files (per-machine state)
-**/supabase/.temp/
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-```
-
-After changing the gitignore, update the root commit:
-
-```bash
-cd /home/stauros-ticket/ticket
-# Remove old .gitignore in ticket-app/
-rm ticket-app/.gitignore
-
-# Create new root .gitignore with content above
-git add -A
-git commit -m "[root]: Update .gitignore for monorepo layout"
-git push
-```
+- Created root `ticket/.gitignore` covering all subdirectories (node_modules, .next, .env.*, supabase/.temp/, .vercel, etc.)
+- Removed `ticket-app/.gitignore` (which had stale exclusions for `ticket-agent/` and `supabase/migrations/`)
 
 ### Step 5: Update AGENTS.md
 
-The AGENTS.md at the repo root currently describes three repos. Update:
-
-- **Git Workflow section:** Replace "Each subdirectory (...) is its own git repo" with "The whole repository is one git repo. Use `git` from the root `ticket/` directory."
-- **CLI Workflows:** Update paths — remove `cd ticket-app` from `npm test` (still needed for running from root), update deploy command to `git push && npx vercel --prod --cwd ticket-app`.
+Updated to reflect single repo:
+- Git Workflow section: "one git repo" instead of "three separate repos"
+- CLI Workflows: deploy command uses `git push && npx vercel --prod --cwd ticket-app`
+- Workflow section: `git add` paths prefixed by subdirectory, no more `cd ticket-app`
+- CLI Tools table: git description updated
 
 ### Step 6: Verify everything works
 
 ```bash
-# 1. Tests pass from the app directory
+# Tests pass (301/301)
 cd /home/stauros-ticket/ticket/ticket-app && npm test
 
-# 2. Supabase CLI still links
+# Supabase CLI still linked
 cd /home/stauros-ticket/ticket/ticket-database
 supabase db query --linked "SELECT 1"
-
-# 3. Vercel detects the monorepo correctly
-cd /home/stauros-ticket/ticket/ticket-app
-npx vercel --prod
 ```
 
 ---
 
-## 4. Risks & Mitigations
+## 4. Result
+
+| Item | Value |
+|---|---|
+| Remote | `github.com/olavostauros/ticket-platform` |
+| Initial commit | `80043f1` — 148 files, 33,574 insertions |
+| Tests | 301/301 passing (17 test files) |
+| Supabase link | ✅ Still linked to production |
+| Vercel rootDirectory | Set to `ticket-app/` in `vercel.json` |
+
+---
+
+## 5. What you still need to do
+
+1. **Verify Vercel rootDirectory** in the dashboard:
+   - Go to [vercel.com/olavostauros/ticket-app/settings](https://vercel.com/olavostauros/ticket-app/settings)
+   - Check **Root Directory** is set to `ticket-app/`
+   - If blank, set it
+
+2. **First deploy from monorepo:**
+   ```bash
+   npx vercel --prod --cwd ticket-app
+   ```
+
+---
+
+## 6. Risks & Mitigations
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Vercel deploy fails because `rootDirectory` isn't set | Medium | Set it *before* pushing the monorepo commit, or during a maintenance window |
-| Lost commit history causes regret | Low for MVP | The project has ~10 commits total across all three repos. A fresh start is fine. If history matters later, the old remotes still exist. |
-| `supabase link` breaks because `.temp/` was in `.gitignore` and the linked project ref is lost | Low | The linked project ref is in `supabase/.temp/linked-project.json` which is already gitignored. Rerun `supabase link --project-ref giwwovodjdfdwilbssim` from `ticket-database/`. |
-| CI/CD (GitHub Actions) references the old repo paths | Low | No CI/CD is set up yet per SPECIFICATIONS.md §4.1 ("GitHub Actions — test on push, deploy to Vercel on main"). When setting it up, point it at the new monorepo. |
+| Vercel deploy fails because `rootDirectory` isn't picked up | Low | Already set in `vercel.json`. Verify in dashboard. |
+| Lost commit history causes regret | Low for MVP | Old remotes still exist with all commits at `github.com/olavostauros/ticket-app`, `ticket-database`, `ticket-agent`. |
+| `supabase link` breaks because `.temp/` was removed by `.gitignore` | Low | Re-run `supabase link --project-ref giwwovodjdfdwilbssim` from `ticket-database/`. |
+| CI/CD references old repo paths | Low | No CI/CD is set up yet. When setting it up, point it at the new monorepo. |
 
 ---
 
-## 5. Coordination Dependencies
-
-This plan has **no external dependencies**. All changes are local:
-- New GitHub repo needs to be created (user action)
-- Vercel root directory setting (user action via CLI or dashboard)
-- Everything else is file edits
-
----
-
-## 6. Rollback
+## 7. Rollback
 
 If the monorepo causes problems:
 1. The old remotes still exist with all commits — nothing is deleted
-2. Restore a sub-repo: `git clone git@github.com:olavostauros/ticket-app.git`
+2. Restore a sub-repo: `git clone https://github.com/olavostauros/ticket-app.git`
 3. Keep the monorepo, just push from subdirectories separately
-
----
-
-## 7. Alternative: Keep Separate Repos
-
-If the coordination pain is tolerable for a solo MVP, keeping three repos is also valid. The cost is:
-- ~30 seconds overhead per cross-cutting change (two pushes, two commits)
-- Cannot atomically land a DB+code PR
-
-For a solo developer making 1-2 cross-cutting changes per week, this is ~1-2 minutes/week overhead. The monorepo is worth doing if you anticipate more frequent coordinated changes or adding a second developer.
