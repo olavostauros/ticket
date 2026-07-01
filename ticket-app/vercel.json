@@ -1,5 +1,5 @@
 {
-  "rootDirectory": "ticket-app",
   "framework": "nextjs",
+  "rootDirectory": "ticket-app",
   "regions": ["gru1"]
 }
