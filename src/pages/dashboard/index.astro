@@ -1,0 +1,38 @@
+---
+export const prerender = false;
+
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import { requireAuth } from "../../lib/auth";
+import { query } from "../../lib/db";
+const user = await requireAuth(Astro);
+const eventsResult = await query("SELECT id, title, slug, status, start_at, created_at FROM events WHERE organizer_id = $1 ORDER BY created_at DESC LIMIT 10", [user.id]);
+const events = eventsResult.rows;
+---
+<DashboardLayout>
+  <h1 style="margin: 0 0 24px;">Visão Geral</h1>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 32px;">
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <p style="margin: 0; color: #666; font-size: 0.875rem;">Total de Eventos</p>
+      <p style="margin: 8px 0 0; font-size: 2rem; font-weight: 600;">{events.length}</p>
+    </div>
+  </div>
+  <h2 style="margin: 0 0 16px;">Meus Eventos</h2>
+  {events.length === 0 ? (
+    <p style="color: #888;">Nenhum evento criado ainda. <a href="/dashboard/events/new" style="color: #1a73e8;">Criar primeiro evento</a></p>
+  ) : (
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      {events.map((ev) => (
+        <a href={`/dashboard/events/${ev.slug}`} key={ev.id} style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; text-decoration: none; color: inherit;">
+          <div>
+            <p style="margin: 0; font-weight: 600;">{ev.title}</p>
+            <p style="margin: 4px 0 0; color: #666; font-size: 0.875rem;">
+              {ev.status === "published" ? "✅ Publicado" : ev.status === "draft" ? "📝 Rascunho" : "❌ Cancelado"}
+              {ev.start_at && ` · ${new Date(ev.start_at).toLocaleDateString("pt-BR")}`}
+            </p>
+          </div>
+          <span style="color: #888;">→</span>
+        </a>
+      ))}
+    </div>
+  )}
+</DashboardLayout>

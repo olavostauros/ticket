@@ -1,0 +1,35 @@
+---
+export const prerender = false;
+
+import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
+import { requireAuth } from "../../../../lib/auth";
+import { query } from "../../../../lib/db";
+const user = await requireAuth(Astro);
+const slug = Astro.params.slug!;
+const ev = (await query("SELECT * FROM events WHERE slug = $1 AND organizer_id = $2", [slug, user.id])).rows[0];
+if (!ev) return Astro.redirect("/404");
+const stats = (await query("SELECT COUNT(*)::int as total_orders, COALESCE(SUM(amount_cents), 0)::int as total_revenue FROM orders WHERE event_id = $1 AND status = 'paid'", [ev.id])).rows[0];
+const ticketCount = (await query("SELECT COUNT(*)::int as total, SUM(CASE WHEN checked_in_at IS NOT NULL THEN 1 ELSE 0 END)::int as checked_in FROM tickets WHERE event_id = $1", [ev.id])).rows[0];
+---
+<DashboardLayout>
+  <a href={`/dashboard/events/${slug}`} style="color: #666; margin-bottom: 16px; display: inline-block;">← Voltar para o evento</a>
+  <h1 style="margin: 0 0 24px;">Dashboard — {ev.title}</h1>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <p style="margin: 0; color: #666; font-size: 0.875rem;">Pedidos Pagos</p>
+      <p style="margin: 8px 0 0; font-size: 2rem; font-weight: 600;">{stats.total_orders}</p>
+    </div>
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <p style="margin: 0; color: #666; font-size: 0.875rem;">Receita Total</p>
+      <p style="margin: 8px 0 0; font-size: 2rem; font-weight: 600;">R$ {(stats.total_revenue / 100).toFixed(2).replace(".", ",")}</p>
+    </div>
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <p style="margin: 0; color: #666; font-size: 0.875rem;">Ingressos Vendidos</p>
+      <p style="margin: 8px 0 0; font-size: 2rem; font-weight: 600;">{ticketCount.total}</p>
+    </div>
+    <div style="padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <p style="margin: 0; color: #666; font-size: 0.875rem;">Check-ins Realizados</p>
+      <p style="margin: 8px 0 0; font-size: 2rem; font-weight: 600;">{ticketCount.checked_in}</p>
+    </div>
+  </div>
+</DashboardLayout>

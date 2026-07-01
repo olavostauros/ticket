@@ -9,7 +9,7 @@ ticket/
 ├── .agents/              ← Agent skills (grilling, find-skills)
 ├── skills-lock.json      ← Installed skills manifest (source of truth)
 ├── agent/               ← MISSION, SPECS, UX, docs, plans
-├── ticket-app/           ← Next.js web application (frontend + API routes)
+├── ticket-app/           ← Astro web application (frontend + API routes)
 └── ticket-database/      ← Database migrations and config
 ```
 
@@ -18,7 +18,7 @@ ticket/
 | If you want to… | Go to… |
 |---|---|
 | Understand the project mission, specs, or conventions | [`agent/`](./agent/) |
-| Read or edit the web app code (Next.js, components, API routes, tests) | [`ticket-app/`](./ticket-app/) |
+| Read or edit the web app code (Astro, components, API routes, tests) | [`ticket-app/`](./ticket-app/) |
 | Work on database schema, migrations, or config | [`ticket-database/`](./ticket-database/) |
 
 ## Quick start
@@ -29,9 +29,9 @@ ticket/
    ```bash
    cd ticket-app && cp -n .env.local.example .env.local
    ```
-   Edit `.env.local` with your database URL, JWT secret, and API keys.
-4. Run the app: `cd ticket-app && npm run dev`
-5. Run tests: `cd ticket-app && npm test`
+   Edit `.env.local` with your database URL, JWT secret, and API keys. Install dependencies: `cd ticket-app && bun install`
+4. Run the app: `cd ticket-app && bun run dev` (Astro dev server on `localhost:4321`)
+5. Run tests: `cd ticket-app && bun test`
 
 ---
 
@@ -41,7 +41,7 @@ Single environment running locally:
 
 | Environment | Code runs at | DB |
 |---|---|---|
-| **Local dev** | `localhost:3000` | Local PostgreSQL (Docker container) |
+| **Local dev** | `localhost:4321` | Local PostgreSQL (Docker container) |
 
 > ⚠️ **Server-side code uses a direct database connection (`DATABASE_URL`)**. Authorization is enforced in route handler code (checks `auth.uid()` against `organizer_id`).
 
@@ -52,9 +52,11 @@ Single environment running locally:
 - **OS:** Ubuntu 26.04 — kernel 7.0.0-27-generic
 - **Docker:** 29.6.1 — installed.
 - **Shell:** Bash (default on this distro)
-- **Node:** v24.18.0 (via nvm)
+- **Bun:** 1.x (runtime and package manager — replaces Node.js/npm for this project)
 - **Pi agent:** `pi-coding-agent` installed globally (`@earendil-works/pi-coding-agent`)
 - **Pi SDK/docs path:** `/home/olavostauros/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/`
+- **Astro:** Installed in `ticket-app/` (Astro Build with TypeScript + Tailwind CSS)
+- **Database:** PostgreSQL inside Docker container
 - **Pi agent skills dir:** `/home/olavostauros/.pi/agent/skills/`
 - **Skills CLI:** `npx skills` — manages installable agent skills from skills.sh ecosystem
 - **Working dir:** `/home/olavostauros/code/ticket`
@@ -64,9 +66,9 @@ Single environment running locally:
 | Tool | Version | Purpose | Common usage |
 |---|---|---|---|
 | `docker` | 29.6.1 | Container engine for local PostgreSQL + app | `docker compose up` — boot full stack. `docker ps` — list running containers. |
-| `npm` | 11.16.0 | Package management, running scripts | `npm test` — run the test suite via Vitest (from `ticket-app/`). `npm run build` — build for production. `npx vitest run tests/path/to/file.test.ts` — run a specific test file. |
+| `bun` | 1.x | Runtime, package manager, test runner | `bun test` — run the test suite (Vitest-compatible, from `ticket-app/`). `bun run build` — build for production (Astro static/SSR output). `bun test src/tests/path/to/file.test.ts` — run a specific test file. |
 | `git` | 2.53.0 | Version control | Single repo, one remote (`origin → github.com/olavostauros/ticket`). Run `git` commands from the root `ticket/` directory. |
-| `curl` | 8.18.0 | API testing | `curl http://localhost:3000/api/...` |
+| `curl` | 8.18.0 | API testing | `curl http://localhost:4321/api/...` |
 | `npx skills` | — | Install/extend agent skills | `npx skills add <owner/repo@skill> -g -y` |
 
 ### Key CLI workflows
@@ -76,23 +78,23 @@ Single environment running locally:
 cd /home/olavostauros/code/ticket && docker compose up
 
 # Local dev server (outside Docker, for hot reload)
-cd /home/olavostauros/code/ticket/ticket-app && npm run dev
+cd /home/olavostauros/code/ticket/ticket-app && bun run dev
 
 # Run database migrations
 cd /home/olavostauros/code/ticket/ticket-database
 psql $DATABASE_URL -f supabase/migrations/00001_initial_schema.sql
 
-# Run all tests (via Vitest)
-cd /home/olavostauros/code/ticket/ticket-app && npm test
+# Run all tests (via Bun's Vitest-compatible runner)
+cd /home/olavostauros/code/ticket/ticket-app && bun test
 
 # Run a specific test file
-cd /home/olavostauros/code/ticket/ticket-app && npx vitest run tests/path/to/file.test.ts
+cd /home/olavostauros/code/ticket/ticket-app && bun test src/tests/path/to/file.test.ts
 
 # Query the local database
 psql $DATABASE_URL -c "SELECT * FROM organizers;"
 
-# Deploy (local build only)
-cd /home/olavostauros/code/ticket && docker compose build
+# Build Astro project (static/SSR)
+cd /home/olavostauros/code/ticket/ticket-app && bun run build
 ```
 
 ## Available Skills
@@ -120,19 +122,46 @@ When working on a task, follow this sequence:
 
 3. **Determine the repo.** Figure out which repo the task lives in:
    - `agent/` — docs, specs, plans
-   - `ticket-app/` — code (Next.js, components, API routes, tests)
+   - `ticket-app/` — code (Astro, components, API routes, tests)
    - `ticket-database/` — schema migrations, database config
 
 4. **Propose a plan** before writing significant code. Show the approach and get confirmation. Prefer MVP-first approaches (ship working feature with fewer dependencies; hardcode values until a second use case demands configurability).
 
-5. **Write tests alongside implementation** (in `ticket-app/tests/`).
+5. **Write tests alongside implementation** (in `ticket-app/src/tests/`).
 
 6. **Run the test suite** before marking work complete:
    ```bash
-   cd /home/olavostauros/code/ticket/ticket-app && npx vitest run
+   cd /home/olavostauros/code/ticket/ticket-app && bun test
    ```
 
 7. **Commit and push.** Make small, focused commits. Use imperative mood in messages, prefixed by scope: `[ticket-app]: Add fee calculation to checkout handler`. Push after every 1–3 commits.
+
+## Astro Project Structure
+
+```
+ticket-app/
+├── src/
+│   ├── components/        ← Astro/TSX components
+│   ├── layouts/           ← Astro layout components
+│   ├── pages/             ← Routes (.astro for pages, .ts for API endpoints)
+│   │   └── api/           ← API route handlers (one .ts file per endpoint)
+│   ├── lib/               ← Shared utilities, db, auth, services
+│   └── tests/             ← Test files (Vitest)
+├── public/                ← Static assets
+├── astro.config.ts        ← Astro configuration
+├── tailwind.config.ts     ← Tailwind CSS configuration
+├── tsconfig.json
+└── package.json
+```
+
+| Directory | Purpose |
+|---|---|
+| `src/pages/` | File-based routing — `.astro` for pages, `.ts` for API endpoints. Dynamic segments use `[param]` filename syntax |
+| `src/components/` | Reusable Astro components (`.astro`) or framework components (`.tsx` if using React/Preact) |
+| `src/layouts/` | Shared page layouts wrapping content |
+| `src/lib/` | Server-only business logic (db queries, auth, AbacatePay client, email) |
+| `src/tests/` | Vitest test suite |
+| `public/` | Static files served at `/` (cover images, favicon) |
 
 8. **Update specs when requirements change.** When code and docs disagree, the code wins — update the relevant file to match reality.
 

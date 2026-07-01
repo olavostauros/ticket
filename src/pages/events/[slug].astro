@@ -1,0 +1,63 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { query } from "../../lib/db";
+import { getAvailableTiers } from "../../lib/utils";
+
+const { slug } = Astro.params;
+const eventResult = await query(
+  "SELECT * FROM events WHERE slug = $1 AND status = 'published'",
+  [slug]
+);
+const event = eventResult.rows[0];
+if (!event) return Astro.redirect("/404");
+
+const tiersResult = await query(
+  "SELECT * FROM tiers WHERE event_id = $1 ORDER BY price_cents ASC",
+  [event.id]
+);
+const availableTiers = getAvailableTiers(tiersResult.rows);
+
+const { organizer_id, ...publicEvent } = event;
+---
+<BaseLayout title={event.title}>
+  <main style="max-width: 800px; margin: 0 auto; padding: 24px;">
+    {event.cover_image_url && (
+      <img src={event.cover_image_url} alt={event.title} style="width: 100%; border-radius: 12px; margin-bottom: 24px;" />
+    )}
+    <h1 style="margin: 0; font-size: 2rem;">{event.title}</h1>
+    {event.description && <p style="color: #666; margin-top: 8px;">{event.description}</p>}
+    <div style="display: flex; gap: 24px; margin-top: 16px; color: #666; font-size: 0.9rem;">
+      {event.venue_name && <span>📍 {event.venue_name}</span>}
+      {event.start_at && <span>📅 {new Date(event.start_at).toLocaleDateString("pt-BR")}</span>}
+    </div>
+    <hr style="margin: 24px 0;" />
+    <h2>Ingressos</h2>
+    {availableTiers.length === 0 ? (
+      <p style="color: #888;">Nenhum ingresso disponível no momento.</p>
+    ) : (
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {availableTiers.map((tier) => (
+          <div key={tier.id} style="display: flex; justify-content: space-between; align-items: center; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px;">
+            <div>
+              <h3 style="margin: 0;">{tier.name}</h3>
+              {tier.description && <p style="margin: 4px 0 0; color: #666; font-size: 0.875rem;">{tier.description}</p>}
+            </div>
+            <div style="text-align: right;">
+              <p style="font-size: 1.25rem; font-weight: 600; margin: 0;">
+                R$ {(tier.price_cents / 100).toFixed(2).replace(".", ",")}
+              </p>
+              <a
+                href={`/checkout?event=${slug}&tier=${tier.id}`}
+                style="display: inline-block; margin-top: 8px; padding: 8px 20px; background: #1a73e8; color: #fff; border-radius: 6px; font-size: 0.875rem;"
+              >
+                Comprar
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </main>
+</BaseLayout>

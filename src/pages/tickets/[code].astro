@@ -1,0 +1,33 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { query } from "../../lib/db";
+
+const { code } = Astro.params;
+const result = await query(
+  "SELECT t.id, t.holder_name, t.holder_email, t.checked_in_at, t.unique_code, e.title as event_title, e.start_at as event_start_at, e.venue_name as event_venue_name, tr.name as tier_name FROM tickets t LEFT JOIN events e ON t.event_id = e.id LEFT JOIN tiers tr ON t.tier_id = tr.id WHERE t.unique_code = $1",
+  [code]
+);
+const ticket = result.rows[0];
+if (!ticket) return Astro.redirect("/404");
+---
+<BaseLayout title="Ingresso — Ticket">
+  <main style="max-width: 560px; margin: 0 auto; padding: 24px;">
+    <h1 style="margin: 0;">🎟️ {ticket.event_title}</h1>
+    {ticket.event_venue_name && <p style="color: #666; margin-top: 4px;">📍 {ticket.event_venue_name}</p>}
+    {ticket.event_start_at && <p style="color: #666;">📅 {new Date(ticket.event_start_at).toLocaleDateString("pt-BR")}</p>}
+    <hr style="margin: 24px 0;" />
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; text-align: center;">
+      <p style="margin: 0; font-size: 1.25rem; font-weight: 600;">{ticket.holder_name}</p>
+      <p style="color: #666; margin: 4px 0;">{ticket.holder_email}</p>
+      <p style="margin-top: 12px;"><strong>Ingresso:</strong> {ticket.tier_name}</p>
+      <p style="margin: 4px 0;"><strong>Código:</strong> <code style="background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 0.9rem;">{ticket.unique_code}</code></p>
+      {ticket.checked_in_at ? (
+        <p style="color: #16a34a; margin-top: 16px; font-weight: 600;">✅ Check-in realizado em {new Date(ticket.checked_in_at).toLocaleString("pt-BR")}</p>
+      ) : (
+        <p style="color: #888; margin-top: 16px;">⏳ Check-in ainda não realizado</p>
+      )}
+    </div>
+  </main>
+</BaseLayout>

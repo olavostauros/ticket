@@ -6,9 +6,9 @@ node_modules/
 # testing
 coverage/
 
-# next.js
-.next/
-out/
+# astro build output
+dist/
+.astro/
 
 # production
 build/
@@ -28,15 +28,12 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
-.env.vercel
-
-# supabase temp files (per-machine state)
-**/supabase/.temp/
-**/supabase/.branches/
-
-# vercel
-.vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# local file uploads (MVP storage)
+public/uploads/
+
+# bun lockfile (generated)
+bun.lock

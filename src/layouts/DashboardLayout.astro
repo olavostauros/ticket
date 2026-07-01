@@ -1,0 +1,18 @@
+---
+export const prerender = false;
+
+import BaseLayout from "./BaseLayout.astro";
+import DashboardSidebar from "../components/DashboardSidebar";
+import { requireAuth } from "../lib/auth";
+
+const user = await requireAuth(Astro);
+if (!user) return;
+---
+<BaseLayout title="Dashboard — Ticket">
+  <div style="display: flex; min-height: 100vh;">
+    <DashboardSidebar />
+    <main style="flex: 1; padding: 24px;">
+      <slot />
+    </main>
+  </div>
+</BaseLayout>

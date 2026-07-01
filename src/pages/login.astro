@@ -1,0 +1,11 @@
+---
+export const prerender = false;
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import LoginForm from "../components/LoginForm";
+import { redirectIfAuthenticated } from "../lib/auth";
+await redirectIfAuthenticated(Astro);
+---
+<BaseLayout title="Entrar — Ticket">
+  <LoginForm client:load />
+</BaseLayout>
