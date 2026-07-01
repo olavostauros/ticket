@@ -22,8 +22,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# pi agent sessions & config
+# pi agent sessions, config & local docs
 .pi/
+.agents/
 
 # local env files
 .env
