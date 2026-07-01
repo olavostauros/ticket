@@ -1,0 +1,5 @@
+# No secrets in this repo
+.env
+.env.local
+*.pem
+.temp
