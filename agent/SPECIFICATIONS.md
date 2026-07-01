@@ -35,8 +35,8 @@ Core entities:
 ## 3. Functional Requirements
 
 ### 3.1 Authentication & Accounts
-- Sign-up: email + password via Supabase Auth. Welcome email sent synchronously (Resend).
-- Login: Supabase session management. Password reset built-in.
+- Sign-up: email + password (bcrypt hashed, JWT sessions). Welcome email sent synchronously (Resend).
+- Login: email + password verification, JWT issued. Password reset via token.
 - Profile: name, email, avatar, PIX key.
 
 ### 3.2 Event Management
@@ -93,13 +93,14 @@ Ticket uses **AbacatePay** as the payment gateway:
 ## 4. Technical Requirements
 
 ### 4.1 Architecture
-- **Stack:** Next.js 16 (App Router, TypeScript) + PostgreSQL via Supabase + Supabase Auth (email/password).
-- **Deployment:** Vercel (frontend + API routes, São Paulo region) + Supabase (database, auth, storage, southamerica-east1).
+- **Stack:** Next.js 16 (App Router, TypeScript) + PostgreSQL (local Docker container).
+- **Auth:** Custom JWT-based auth (bcrypt + jsonwebtoken). Sessions stored in `organizers` table `session_token` column.
+- **Deployment:** Local Docker Compose (Next.js app + PostgreSQL). No cloud hosting for MVP.
 - **Payments:** AbacatePay Checkout API + webhooks with HMAC-SHA256 verification.
 - **Emails:** Resend. Welcome email sent synchronously during signup; confirmation emails queued via `pending_jobs`.
-- **Jobs queue:** `pending_jobs` table with atomic RPCs (`fetch_pending_jobs` with `FOR UPDATE SKIP LOCKED`). Processed by `/api/cron/process-jobs` (Vercel Cron Job, once daily on Hobby plan). Webhooks return 200 immediately and defer heavy work.
-- **File storage:** Supabase Storage (public bucket) for event cover images only. QR codes are URL-encoded UUIDs rendered client-side — no storage needed.
-- **CI/CD:** GitHub Actions (test on push, deploy to Vercel on main).
+- **Jobs queue:** `pending_jobs` table with atomic RPCs (`fetch_pending_jobs` with `FOR UPDATE SKIP LOCKED`). Processed by `/api/cron/process-jobs` (polled by docker-hosted cron or manual trigger). Webhooks return 200 immediately and defer heavy work.
+- **File storage:** Local filesystem (`public/uploads/`) for event cover images only. QR codes are URL-encoded UUIDs rendered client-side — no storage needed.
+- **CI/CD:** GitHub Actions (test on push only). No automatic deploy.
 
 ### 4.2 API Design (MVP Only)
 All endpoints return JSON. Auth-protected endpoints use `Authorization: Bearer <jwt>`. Organizer-only endpoints return 403 for non-owners.
@@ -128,7 +129,7 @@ POST   /api/auth/login                 — Sign in
 GET    /api/auth/me                    — Current user info
 
 # Internal (protected by secret token)
-POST   /api/cron/process-jobs          — Drain pending_jobs queue (Vercel Cron Job)
+POST   /api/cron/process-jobs          — Drain pending_jobs queue (cron or manual trigger)
 ```
 
 ### 4.3 PostgreSQL Data Model
@@ -148,20 +149,20 @@ Full schema lives in `ticket-database/supabase/migrations/`:
 - `pending_jobs` — id, job_type, payload (JSONB), status (pending|processing|done|failed), retries, max_retries
 
 ### 4.4 Security & Compliance
-- **Authentication** delegated to Supabase Auth — no password hashing in application code.
+- **Authentication** via custom JWT — passwords hashed with bcrypt, sessions managed in application code.
 - **Access control enforced in API route code, not RLS** — all queries use the `service_role` key server-side (bypasses RLS). Authorization logic checks organizer ownership in handler code.
 - **Input validation** via Zod on every API route.
 - **AbacatePay webhooks** verified by HMAC-SHA256 signature before processing.
 - **Rate limiting** on auth and checkout endpoints via Next.js middleware.
 - **SQL injection** prevented by parameterized queries — never concatenate user input into SQL strings.
-- **All secrets in Vercel env vars** (RESEND_API_KEY, SUPABASE_SERVICE_ROLE_KEY, ABACATEPAY_API_KEY, etc.) — never committed to git.
+- **All secrets in `.env.local`** (RESEND_API_KEY, DATABASE_URL, JWT_SECRET, ABACATEPAY_API_KEY, etc.) — never committed to git.
 
 ### 4.5 Performance & Reliability
 - **Event pages** should render < 200ms. `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`.
 - **Checkout atomicity** uses `SELECT ... FOR UPDATE`. Contending transactions block in queue — no retry overhead.
 - **Webhook handler** returns 200 immediately after verifying signature and inserting a `pending_jobs` row. All heavy work deferred to the job queue.
-- **Connection pooling** via Supabase's pgBouncer.
-- **Caching** via Vercel Edge CDN for static assets.
+- **Connection pooling** via `pgbouncer` sidecar in Docker Compose.
+- **Caching** via Next.js built-in static asset caching (`Cache-Control` headers).
 
 ## 5. Glossary
 

@@ -6,30 +6,30 @@ This file routes agents to the correct project directory and defines the operati
 
 ```
 ticket/
-├── .agents/              ← Agent skills (supabase, grilling, find-skills)
+├── .agents/              ← Agent skills (grilling, find-skills)
 ├── skills-lock.json      ← Installed skills manifest (source of truth)
-├── ticket-agent/         ← MISSION, SPECS, UX, docs, plans
+├── agent/               ← MISSION, SPECS, UX, docs, plans
 ├── ticket-app/           ← Next.js web application (frontend + API routes)
-└── ticket-database/      ← Database migrations and Supabase config
+└── ticket-database/      ← Database migrations and config
 ```
 
 ## Where to go
 
 | If you want to… | Go to… |
 |---|---|
-| Understand the project mission, specs, or conventions | [`ticket-agent/`](./ticket-agent/) |
+| Understand the project mission, specs, or conventions | [`agent/`](./agent/) |
 | Read or edit the web app code (Next.js, components, API routes, tests) | [`ticket-app/`](./ticket-app/) |
-| Work on database schema, migrations, or Supabase config | [`ticket-database/`](./ticket-database/) |
+| Work on database schema, migrations, or config | [`ticket-database/`](./ticket-database/) |
 
 ## Quick start
 
-1. Read `ticket-agent/MISSION.md` for the project's purpose.
-2. Read `ticket-agent/SPECIFICATIONS.md` for detailed functional and technical specs.
+1. Read `agent/MISSION.md` for the project's purpose.
+2. Read `agent/SPECIFICATIONS.md` for detailed functional and technical specs.
 3. Set up local environment:
    ```bash
    cd ticket-app && cp -n .env.local.example .env.local
    ```
-   Edit `.env.local` with your Supabase keys (anon key + service role key).
+   Edit `.env.local` with your database URL, JWT secret, and API keys.
 4. Run the app: `cd ticket-app && npm run dev`
 5. Run tests: `cd ticket-app && npm test`
 
@@ -37,89 +37,73 @@ ticket/
 
 ## Environment Architecture
 
-Three environments share the same Supabase project[^1]:
+Single environment running locally:
 
 | Environment | Code runs at | DB |
 |---|---|---|
-| **Local dev** | `localhost:3000` | `supabase start` (local Docker) or cloud project |
-| **Vercel Preview** | Per-branch Vercel preview | Supabase cloud (southamerica-east1) |
-| **Vercel Production** | `ticket-app-beta-silk.vercel.app` | Supabase cloud (southamerica-east1) |
+| **Local dev** | `localhost:3000` | Local PostgreSQL (Docker container) |
 
-[^1]: A future improvement would separate preview/staging projects.
-
-> ⚠️ **Server-side code uses `SUPABASE_SERVICE_ROLE_KEY`**, which bypasses RLS entirely. Authorization is enforced in route handler code (checks `auth.uid()` against `organizer_id`). Do not rely on RLS for server-side access control.
+> ⚠️ **Server-side code uses a direct database connection (`DATABASE_URL`)**. Authorization is enforced in route handler code (checks `auth.uid()` against `organizer_id`).
 
 ---
 
 ## Agent Environment
 
-- **OS:** WSL2 (Ubuntu on Windows) — kernel 6.18.33.2-microsoft-standard-WSL2
-- **Docker Desktop:** ✅ Enabled. `supabase start` (local Postgres + GoTrue via Docker Compose) is fully available.
+- **OS:** Ubuntu 26.04 — kernel 7.0.0-27-generic
+- **Docker:** 29.6.1 — installed.
 - **Shell:** Bash (default on this distro)
 - **Node:** v24.18.0 (via nvm)
 - **Pi agent:** `pi-coding-agent` installed globally (`@earendil-works/pi-coding-agent`)
-- **Pi SDK/docs path:** `/home/stauros-ticket/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/`
-- **Pi agent skills dir:** `/home/stauros-ticket/.pi/agent/skills/`
+- **Pi SDK/docs path:** `/home/olavostauros/.nvm/versions/node/v24.18.0/lib/node_modules/@earendil-works/pi-coding-agent/`
+- **Pi agent skills dir:** `/home/olavostauros/.pi/agent/skills/`
 - **Skills CLI:** `npx skills` — manages installable agent skills from skills.sh ecosystem
-- **Working dir:** `/home/stauros-ticket/ticket`
+- **Working dir:** `/home/olavostauros/code/ticket`
 
 ## CLI Tools at Disposal
 
 | Tool | Version | Purpose | Common usage |
 |---|---|---|---|
-| `supabase` | 2.109.0 | Database queries, migrations, project management | `supabase db query --linked "<sql>"` — run SQL against the linked Supabase project. Works without local Docker. Always use `--linked` for the production database. |
-| `vercel` (via `npx vercel`) | 54.18.6 | Deployments, env vars, project config | `npx vercel --prod` — deploy to production. `npx vercel env ls` — list env vars. `npx vercel env pull .env.vercel` — pull production env vars (secrets appear empty locally but are set at runtime). |
+| `docker` | 29.6.1 | Container engine for local PostgreSQL + app | `docker compose up` — boot full stack. `docker ps` — list running containers. |
 | `npm` | 11.16.0 | Package management, running scripts | `npm test` — run the test suite via Vitest (from `ticket-app/`). `npm run build` — build for production. `npx vitest run tests/path/to/file.test.ts` — run a specific test file. |
 | `git` | 2.53.0 | Version control | Single repo, one remote (`origin → github.com/olavostauros/ticket`). Run `git` commands from the root `ticket/` directory. |
-| `curl` | 8.18.0 | API testing | `curl https://ticket-app-beta-silk.vercel.app/api/...` |
+| `curl` | 8.18.0 | API testing | `curl http://localhost:3000/api/...` |
 | `npx skills` | — | Install/extend agent skills | `npx skills add <owner/repo@skill> -g -y` |
 
 ### Key CLI workflows
 
 ```bash
-# Local dev server (first-time: cp -n .env.local.example .env.local)
-cd /home/stauros-ticket/ticket/ticket-app && npm run dev
+# Boot full stack with Docker Compose
+cd /home/olavostauros/code/ticket && docker compose up
 
-# Start local Supabase (optional — uses Docker)
-cd /home/stauros-ticket/ticket/ticket-database && supabase start
+# Local dev server (outside Docker, for hot reload)
+cd /home/olavostauros/code/ticket/ticket-app && npm run dev
+
+# Run database migrations
+cd /home/olavostauros/code/ticket/ticket-database
+psql $DATABASE_URL -f supabase/migrations/00001_initial_schema.sql
 
 # Run all tests (via Vitest)
-cd /home/stauros-ticket/ticket/ticket-app && npm test
+cd /home/olavostauros/code/ticket/ticket-app && npm test
 
 # Run a specific test file
-cd /home/stauros-ticket/ticket/ticket-app && npx vitest run tests/path/to/file.test.ts
+cd /home/olavostauros/code/ticket/ticket-app && npx vitest run tests/path/to/file.test.ts
 
-# Query production DB
-cd /home/stauros-ticket/ticket/ticket-database
-supabase db query --linked "SELECT * FROM organizers;"
+# Query the local database
+psql $DATABASE_URL -c "SELECT * FROM organizers;"
 
-# Deploy
-git add -A && git commit -m "..." && git push
-npx vercel --prod --cwd ticket-app
-
-# Debug with production env vars
-cd /home/stauros-ticket/ticket/ticket-app
-npx vercel env run production -- <command>
-
-# Check Vercel env vars
-cd /home/stauros-ticket/ticket/ticket-app
-npx vercel env ls
-
-# Pull production env vars
-cd /home/stauros-ticket/ticket/ticket-app
-npx vercel env pull .env.vercel
+# Deploy (local build only)
+cd /home/olavostauros/code/ticket && docker compose build
 ```
 
 ## Available Skills
 
-Skills are installable packages that extend the agent's capabilities. They live in `/home/stauros-ticket/.pi/agent/skills/` and are symlinked from `.agents/skills/`.
+Skills are installable packages that extend the agent's capabilities. They live in `/home/olavostauros/.pi/agent/skills/` and are symlinked from `.agents/skills/`.
 
 | Skill | Description | When to use |
 |---|---|---|
 | `find-skills` | Discover and install skills from the open agent skills ecosystem. | User asks "how do I do X" or "is there a skill for X" |
 | `grill-me` | A relentless interview to sharpen a plan or design. Invoked via the `/grilling` command or "grill" verb. | When a plan or design needs stress-testing — use the "grill" verb on a plan file. |
 | `grilling` | Sequential, one-question-at-a-time interrogation of a design tree. | When you want a more methodical walkthrough than `grill-me`. |
-| `supabase` | Specialized knowledge for all Supabase tasks (DB, Auth, Storage, RLS, Edge Functions). | Any Supabase-related task. |
 
 To install a new skill globally:
 ```bash
@@ -132,12 +116,12 @@ When working on a task, follow this sequence:
 
 1. **Read the docs first.** Read `MISSION.md` and `SPECIFICATIONS.md` to understand context before touching code.
 
-2. **Load the relevant skill.** If the task involves Supabase, load the `supabase` skill at `.agents/skills/supabase/SKILL.md` before proceeding. The skill contains critical security guidance, CLI gotchas, and RLS best practices specific to this project.
+2. **Load the relevant skill** when appropriate. See the Available Skills table above.
 
 3. **Determine the repo.** Figure out which repo the task lives in:
-   - `ticket-agent/` — docs, specs, plans
+   - `agent/` — docs, specs, plans
    - `ticket-app/` — code (Next.js, components, API routes, tests)
-   - `ticket-database/` — schema migrations, Supabase config
+   - `ticket-database/` — schema migrations, database config
 
 4. **Propose a plan** before writing significant code. Show the approach and get confirmation. Prefer MVP-first approaches (ship working feature with fewer dependencies; hardcode values until a second use case demands configurability).
 
@@ -145,7 +129,7 @@ When working on a task, follow this sequence:
 
 6. **Run the test suite** before marking work complete:
    ```bash
-   cd /home/stauros-ticket/ticket/ticket-app && npx vitest run
+   cd /home/olavostauros/code/ticket/ticket-app && npx vitest run
    ```
 
 7. **Commit and push.** Make small, focused commits. Use imperative mood in messages, prefixed by scope: `[ticket-app]: Add fee calculation to checkout handler`. Push after every 1–3 commits.
@@ -159,5 +143,5 @@ When working on a task, follow this sequence:
 - Do not commit generated boilerplate without review.
 - Do not ignore failing tests.
 - Do not hardcode secrets or configuration that varies by environment.
-- Do not expose Supabase `service_role` key or organizer PIX keys client-side.
+- Do not expose organizer PIX keys client-side.
 - Do not store sensitive data (PIX keys, refund IDs) in places readable by client-side code.
