@@ -1,0 +1,20 @@
+---
+export const prerender = false;
+
+import DashboardLayout from "../../../../layouts/DashboardLayout.astro";
+import { requireAuth } from "../../../../lib/auth";
+import { query } from "../../../../lib/db";
+import EditEventForm from "../../../../components/EditEventForm";
+
+const user = await requireAuth(Astro);
+const slug = Astro.params.slug!;
+const ev = (await query("SELECT id, organizer_id, title, status FROM events WHERE slug = $1 AND organizer_id = $2", [slug, user.id])).rows[0];
+if (!ev) return Astro.redirect("/404");
+if (ev.status !== "draft") return Astro.redirect(`/dashboard/events/${slug}`);
+---
+<DashboardLayout>
+  <a href={`/dashboard/events/${slug}`} style="color: #666; margin-bottom: 16px; display: inline-block;">← Voltar para {ev.title}</a>
+  <h1 style="margin: 0 0 24px;">Editar Evento</h1>
+  <p style="color: #666; margin-bottom: 24px;">Altere os dados do evento <strong>{ev.title}</strong>. As alterações só podem ser feitas enquanto o evento estiver em rascunho.</p>
+  <EditEventForm client:load slug={slug} />
+</DashboardLayout>

@@ -20,9 +20,12 @@ const tiers = (await query("SELECT * FROM tiers WHERE event_id = $1 ORDER BY pri
     </div>
     <div style="display: flex; gap: 8px;">
       {ev.status === "draft" && (
-        <form method="POST" action={`/api/events/${slug}/publish`}>
-          <button type="submit" style="padding: 8px 16px; background: #16a34a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">Publicar</button>
-        </form>
+        <>
+          <form method="POST" action={`/api/events/${slug}/publish`}>
+            <button type="submit" style="padding: 8px 16px; background: #16a34a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">Publicar</button>
+          </form>
+          <a href={`/dashboard/events/${slug}/edit`} style="padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.875rem; text-decoration: none;">Editar</a>
+        </>
       )}
       <a href={`/events/${slug}`} style="padding: 8px 16px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.875rem;">Ver página pública</a>
     </div>
