@@ -3,9 +3,10 @@ export const prerender = false;
 
 import DashboardLayout from "../../layouts/DashboardLayout.astro";
 import { requireAuth } from "../../lib/auth";
+import EditProfileForm from "../../components/EditProfileForm";
 const user = await requireAuth(Astro);
 ---
 <DashboardLayout>
   <h1 style="margin: 0 0 24px;">Perfil</h1>
-  <p style="color: #888;">Página de perfil em construção.</p>
+  <EditProfileForm client:load />
 </DashboardLayout>
