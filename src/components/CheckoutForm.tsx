@@ -39,6 +39,17 @@ export default function CheckoutForm({ eventSlug, tierId }: Props) {
   const maxQty = tier ? tier.quantity_total - tier.quantity_sold : 1;
   const subtotalCents = tier ? tier.price_cents * quantity : 0;
 
+  // Fee calculation (mirrors src/lib/fees.ts)
+  const PLATFORM_FEE_PERCENT = 0.05;
+  const PLATFORM_FEE_FIXED_CENTS = 50;
+  const platformFeeCents = Math.round(subtotalCents * PLATFORM_FEE_PERCENT) + PLATFORM_FEE_FIXED_CENTS;
+  const abacatepayFeeCents = 0; // PIX is free in MVP
+  const totalCents = subtotalCents + platformFeeCents + abacatepayFeeCents;
+
+  function formatCents(cents: number): string {
+    return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -105,6 +116,29 @@ export default function CheckoutForm({ eventSlug, tierId }: Props) {
               style={{ width: 80, padding: "10px 12px", border: "1px solid #ccc", borderRadius: 6, fontSize: "1rem" }} />
             <span style={{ marginLeft: 8, fontSize: "0.85em", color: "#888" }}>{maxQty} disponível(is)</span>
           </div>
+
+          {subtotalCents > 0 && (
+            <div style={{ marginBottom: 24, padding: "12px 16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, fontSize: "0.9rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span>Ingresso{(quantity > 1 ? "s" : "")}</span>
+                <span>R$ {formatCents(subtotalCents)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#666" }}>
+                <span>Taxa da plataforma (5% + R$ 0,50)</span>
+                <span>R$ {formatCents(platformFeeCents)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#666" }}>
+                <span>Taxa de processamento (PIX)</span>
+                <span>R$ {formatCents(abacatepayFeeCents)}</span>
+              </div>
+              <hr style={{ margin: "8px 0", border: "none", borderTop: "1px solid #d1d5db" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, fontSize: "1rem" }}>
+                <span>Total</span>
+                <span>R$ {formatCents(totalCents)}</span>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div style={{ padding: "12px 16px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 6, color: "#991b1b", marginBottom: 16, fontSize: "0.9rem" }}>
               {error}
