@@ -1,11 +1,14 @@
 import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
 import react from '@astrojs/react';
+
 // https://astro.build/config
 export default defineConfig({
-  adapter: node({
-    mode: 'standalone'
+  adapter: cloudflare({
+    platformProxy: {
+      enabled: true,
+    },
   }),
-
-  integrations: [react()]
+  integrations: [react()],
+  output: 'server',
 });
