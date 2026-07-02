@@ -1,16 +1,20 @@
-import jwt from "jsonwebtoken";
+import { SignJWT, jwtVerify } from "jose";
 import type { APIContext } from "astro";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 const SESSION_COOKIE_NAME = "ticket_session";
 
-export function signToken(payload: { id: string; email: string }): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+export async function signToken(payload: { id: string; email: string }): Promise<string> {
+  return new SignJWT({ id: payload.id, email: payload.email })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("7d")
+    .sign(JWT_SECRET);
 }
 
-export function verifyToken(token: string): { id: string; email: string } | null {
+export async function verifyToken(token: string): Promise<{ id: string; email: string } | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as { id: string; email: string };
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return { id: payload.id as string, email: payload.email as string };
   } catch {
     return null;
   }
@@ -21,13 +25,13 @@ export async function getAuthUser(
 ): Promise<{ id: string; email: string } | null> {
   const authHeader = context.request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    const user = verifyToken(authHeader.slice(7));
+    const user = await verifyToken(authHeader.slice(7));
     if (user) return user;
   }
 
   const sessionCookie = context.cookies.get(SESSION_COOKIE_NAME);
   if (sessionCookie?.value) {
-    return verifyToken(sessionCookie.value);
+    return await verifyToken(sessionCookie.value);
   }
 
   return null;
