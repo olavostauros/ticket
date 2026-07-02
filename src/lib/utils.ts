@@ -34,3 +34,12 @@ export function generateOrderReference(): string {
   return result;
 }
 
+/**
+ * Generate an 8-character uppercase hex code for ticket identification.
+ * Uses crypto.randomUUID() for cryptographically secure entropy.
+ * Example: "A3F7C2B9"
+ */
+export function generateTicketCode(): string {
+  return randomUUID().replace(/-/g, "").substring(0, 8).toUpperCase();
+}
+
