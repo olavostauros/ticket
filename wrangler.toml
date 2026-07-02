@@ -1,0 +1,53 @@
+# ====================================================================
+# Ticket — Cloudflare Workers/Pages Configuration
+# ====================================================================
+# After creating resources, uncomment and fill in the IDs below.
+#
+# Create resources (run once):
+#   npx wrangler r2 bucket create ticket-uploads
+#   npx wrangler kv namespace create RATE_LIMIT
+#   npx wrangler hyperdrive create ticket-neon --connection-string="$DATABASE_URL"
+#
+# Set secrets with:
+#   npx wrangler secret put JWT_SECRET
+#   npx wrangler secret put ABACATEPAY_API_KEY
+#   npx wrangler secret put ABACATEPAY_WEBHOOK_SECRET
+#   npx wrangler secret put RESEND_API_KEY
+#   npx wrangler secret put PUBLIC_APP_URL
+#
+# For Neon path: set DATABASE_URL to the Hyperdrive connection URL.
+# ====================================================================
+
+name = "ticket"
+compatibility_date = "2025-07-02"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── Pages configuration ─────────────────────────────────────────
+
+pages_build_output_dir = "dist"
+
+[env.production]
+# Bindings inherit from top-level unless overridden
+
+# ─── R2 bucket for uploaded cover images ─────────────────────────
+# Create: npx wrangler r2 bucket create ticket-uploads
+# [[r2_buckets]]
+# binding = "UPLOADS_BUCKET"
+# bucket_name = "ticket-uploads"
+
+# ─── KV namespace for rate limiting ──────────────────────────────
+# Created: npx wrangler kv namespace create RATE_LIMIT
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "ca7202f9b11a41a1aaa682ded046b3dc"
+
+# ─── Hyperdrive (Neon PostgreSQL tunnel) ─────────────────────────
+# Create: npx wrangler hyperdrive create ticket-neon --connection-string="$DATABASE_URL"
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "your-hyperdrive-id"
+
+# ─── Cron Triggers ───────────────────────────────────────────────
+# For Pages projects, Cron Triggers are configured in the Cloudflare
+# dashboard under your Pages project > Settings > Cron Triggers.
+# Add: */5 * * * *  →  POST /api/cron/process-jobs
