@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../lib/db", () => ({ query: vi.fn() }));
 vi.mock("../lib/auth", () => ({
   getAuthUser: vi.fn(),
-  signToken: vi.fn().mockReturnValue("test-token"),
-  verifyToken: vi.fn().mockReturnValue(null),
+  signToken: vi.fn().mockResolvedValue("test-token"),
+  verifyToken: vi.fn().mockResolvedValue(null),
   requireAuth: vi.fn(),
   redirectIfAuthenticated: vi.fn(),
 }));

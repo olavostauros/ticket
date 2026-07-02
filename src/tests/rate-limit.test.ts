@@ -12,54 +12,56 @@ describe("checkRateLimit", () => {
     resetRateLimiter();
   });
 
-  it("allows first request", () => {
-    const result = checkRateLimit("test:127.0.0.1", 5, 60_000);
+  it("allows first request", async () => {
+    const result = await checkRateLimit("test:127.0.0.1", 5, 60_000);
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(4);
   });
 
-  it("blocks when limit exceeded", () => {
+  it("blocks when limit exceeded", async () => {
     const key = "test:127.0.0.1";
     // maxAttempts=5 means requests 1-5 are allowed, 6th is blocked
     for (let i = 0; i < 6; i++) {
-      const result = checkRateLimit(key, 5, 60_000);
+      const result = await checkRateLimit(key, 5, 60_000);
       if (i < 5) expect(result.allowed).toBe(true);
       else expect(result.allowed).toBe(false);
     }
   });
 
-  it("resets after window expires", () => {
+  it("resets after window expires", async () => {
     const key = "test:127.0.0.1";
     // Exhaust the limit
     for (let i = 0; i < 6; i++) {
-      checkRateLimit(key, 5, 60_000);
+      await checkRateLimit(key, 5, 60_000);
     }
-    expect(checkRateLimit(key, 5, 60_000).allowed).toBe(false);
+    expect((await checkRateLimit(key, 5, 60_000)).allowed).toBe(false);
 
     // Simulate window expiry by clearing the map
     resetRateLimiter();
-    expect(checkRateLimit(key, 5, 60_000).allowed).toBe(true);
+    expect((await checkRateLimit(key, 5, 60_000)).allowed).toBe(true);
   });
 
-  it("tracks remaining count", () => {
+  it("tracks remaining count", async () => {
     const key = "test:127.0.0.1";
-    expect(checkRateLimit(key, 5, 60_000).remaining).toBe(4);
-    expect(checkRateLimit(key, 5, 60_000).remaining).toBe(3);
-    expect(checkRateLimit(key, 5, 60_000).remaining).toBe(2);
+    expect((await checkRateLimit(key, 5, 60_000)).remaining).toBe(4);
+    expect((await checkRateLimit(key, 5, 60_000)).remaining).toBe(3);
+    expect((await checkRateLimit(key, 5, 60_000)).remaining).toBe(2);
   });
 
-  it("uses separate keys independently", () => {
-    const resultA = checkRateLimit("key-a", 3, 60_000);
-    const resultB = checkRateLimit("key-b", 3, 60_000);
+  it("uses separate keys independently", async () => {
+    const [resultA, resultB] = await Promise.all([
+      checkRateLimit("key-a", 3, 60_000),
+      checkRateLimit("key-b", 3, 60_000),
+    ]);
     expect(resultA.allowed).toBe(true);
     expect(resultB.allowed).toBe(true);
 
     // Exhaust key-a
-    checkRateLimit("key-a", 3, 60_000);
-    checkRateLimit("key-a", 3, 60_000);
-    expect(checkRateLimit("key-a", 3, 60_000).allowed).toBe(false);
+    await checkRateLimit("key-a", 3, 60_000);
+    await checkRateLimit("key-a", 3, 60_000);
+    expect((await checkRateLimit("key-a", 3, 60_000)).allowed).toBe(false);
     // key-b should still be available
-    expect(checkRateLimit("key-b", 3, 60_000).remaining).toBe(1);
+    expect((await checkRateLimit("key-b", 3, 60_000)).remaining).toBe(1);
   });
 });
 
@@ -68,17 +70,17 @@ describe("lastAccessed tracking", () => {
     resetRateLimiter();
   });
 
-  it("sets lastAccessed on first request", () => {
-    checkRateLimit("test:127.0.0.1", 5, 60_000);
+  it("sets lastAccessed on first request", async () => {
+    await checkRateLimit("test:127.0.0.1", 5, 60_000);
     const entry = windows.get("test:127.0.0.1");
     expect(entry).toBeDefined();
     expect(entry!.lastAccessed).toBeGreaterThan(0);
   });
 
-  it("updates lastAccessed on subsequent requests", () => {
-    checkRateLimit("test:127.0.0.1", 5, 60_000);
+  it("updates lastAccessed on subsequent requests", async () => {
+    await checkRateLimit("test:127.0.0.1", 5, 60_000);
     const first = windows.get("test:127.0.0.1")!.lastAccessed;
-    checkRateLimit("test:127.0.0.1", 5, 60_000);
+    await checkRateLimit("test:127.0.0.1", 5, 60_000);
     const second = windows.get("test:127.0.0.1")!.lastAccessed;
     expect(second).toBeGreaterThanOrEqual(first);
   });
@@ -162,8 +164,8 @@ describe("resetRateLimiter", () => {
     resetRateLimiter();
   });
 
-  it("clears all windows", () => {
-    checkRateLimit("key:127.0.0.1", 5, 60_000);
+  it("clears all windows", async () => {
+    await checkRateLimit("key:127.0.0.1", 5, 60_000);
     expect(windows.size).toBe(1);
     resetRateLimiter();
     expect(windows.size).toBe(0);
