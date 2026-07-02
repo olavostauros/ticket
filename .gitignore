@@ -39,3 +39,6 @@ public/uploads/
 
 # bun lockfile (generated)
 bun.lock
+
+# Cloudflare adapter generated files
+.wrangler/.neon/
