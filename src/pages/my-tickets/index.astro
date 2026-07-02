@@ -2,14 +2,8 @@
 export const prerender = false;
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import MyTicketsLookup from "../../components/MyTicketsLookup";
 ---
 <BaseLayout title="Meus Ingressos — Ticket">
-  <main style="max-width: 600px; margin: 0 auto; padding: 48px 24px;">
-    <h1 style="margin: 0;">Meus Ingressos</h1>
-    <p style="color: #888; margin-top: 8px;">Consulte seus ingressos informando seu email.</p>
-    <form method="POST" action="/api/orders/lookup" style="margin-top: 24px; display: flex; gap: 8px;">
-      <input type="email" name="email" placeholder="Seu email" required style="flex: 1; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;" />
-      <button type="submit" style="padding: 10px 20px; background: #1a73e8; color: #fff; border: none; border-radius: 6px; cursor: pointer;">Consultar</button>
-    </form>
-  </main>
+  <MyTicketsLookup client:load />
 </BaseLayout>

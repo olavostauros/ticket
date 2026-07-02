@@ -18,7 +18,7 @@ export const POST: APIRoute = async (context) => {
 
     const body = await context.request.json();
     const parsed = checkinSchema.safeParse(body);
-    if (!parsed.success) return err("Invalid ticket code", 400, "validation_error");
+    if (!parsed.success) return err("Código de ingresso inválido", 400, "validation_error");
 
     const { ticket_code } = parsed.data;
 

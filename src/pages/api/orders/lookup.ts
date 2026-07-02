@@ -12,7 +12,7 @@ export const POST: APIRoute = async (context) => {
 
     const body = await context.request.json();
     const { email, reference } = body;
-    if (!email && !reference) return err("Provide email or order reference", 400, "missing_params");
+    if (!email && !reference) return err("Informe email ou código do pedido", 400, "missing_params");
 
     let queryText = "SELECT o.*, e.title as event_title FROM orders o LEFT JOIN events e ON o.event_id = e.id WHERE";
     const params: unknown[] = [];

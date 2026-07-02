@@ -28,7 +28,7 @@ export const POST: APIRoute = async (context) => {
 
     // Check for existing user
     const existing = await query("SELECT id FROM organizers WHERE email = $1", [normalizedEmail]);
-    if (existing.rows[0]) return err("An account with this email already exists", 409, "email_exists");
+    if (existing.rows[0]) return err("Já existe uma conta com este email", 409, "email_exists");
 
     const passwordHash = await hashPassword(password);
 

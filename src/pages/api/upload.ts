@@ -19,10 +19,10 @@ export const POST: APIRoute = async (context) => {
     const formData = await context.request.formData();
     const file = formData.get("file");
 
-    if (!file || !(file instanceof File)) return err("No file uploaded", 400, "no_file");
+    if (!file || !(file instanceof File)) return err("Nenhum arquivo enviado", 400, "no_file");
 
-    if (file.size > MAX_FILE_SIZE) return err("File too large (max 5MB)", 400, "file_too_large");
-    if (!ALLOWED_TYPES.includes(file.type)) return err("Invalid file type. Allowed: JPEG, PNG, GIF, WebP", 400, "invalid_type");
+    if (file.size > MAX_FILE_SIZE) return err("Arquivo muito grande (máx. 5MB)", 400, "file_too_large");
+    if (!ALLOWED_TYPES.includes(file.type)) return err("Tipo de arquivo inválido. Permitidos: JPEG, PNG, GIF, WebP", 400, "invalid_type");
 
     const ext = file.type.split("/")[1] || "jpg";
     const filename = `${randomUUID()}.${ext}`;

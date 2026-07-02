@@ -8,6 +8,10 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Get redirect URL from query params (if any)
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const redirectTo = params.get("redirect") || "/dashboard";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -31,7 +35,7 @@ export default function LoginForm() {
         return;
       }
 
-      window.location.href = "/dashboard";
+      window.location.href = redirectTo;
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
