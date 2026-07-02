@@ -26,20 +26,17 @@ export const POST: APIRoute = async (context) => {
     if (payload.event === "checkout.completed") {
       const { id: billingId, reference } = payload.data;
 
-      // Avoid inserting duplicate jobs for the same order
-      const existing = await query(
-        "SELECT id FROM pending_jobs WHERE job_type = $1 AND payload->>'reference' = $2 AND status = 'pending'",
-        [JOB_TYPES.PROCESS_PAID_ORDER, reference]
+      // Database-level dedup via partial unique index.
+      // Two concurrent webhooks for the same reference race on INSERT;
+      // only one wins, the other is silently ignored.
+      await query(
+        `INSERT INTO pending_jobs (job_type, payload) VALUES ($1, $2)
+         ON CONFLICT (job_type, (payload->>'reference')) WHERE status = 'pending' DO NOTHING`,
+        [
+          JOB_TYPES.PROCESS_PAID_ORDER,
+          JSON.stringify({ billing_id: billingId, reference }),
+        ]
       );
-      if (!existing.rows[0]) {
-        await query(
-          "INSERT INTO pending_jobs (job_type, payload) VALUES ($1, $2)",
-          [
-            JOB_TYPES.PROCESS_PAID_ORDER,
-            JSON.stringify({ billing_id: billingId, reference }),
-          ]
-        );
-      }
 
       return ok({ received: true });
     }
@@ -47,19 +44,14 @@ export const POST: APIRoute = async (context) => {
     if (payload.event === "checkout.lost") {
       const { reference } = payload.data;
 
-      const existing = await query(
-        "SELECT id FROM pending_jobs WHERE job_type = $1 AND payload->>'reference' = $2 AND status = 'pending'",
-        [JOB_TYPES.PROCESS_LOST_ORDER, reference]
+      await query(
+        `INSERT INTO pending_jobs (job_type, payload) VALUES ($1, $2)
+         ON CONFLICT (job_type, (payload->>'reference')) WHERE status = 'pending' DO NOTHING`,
+        [
+          JOB_TYPES.PROCESS_LOST_ORDER,
+          JSON.stringify({ reference }),
+        ]
       );
-      if (!existing.rows[0]) {
-        await query(
-          "INSERT INTO pending_jobs (job_type, payload) VALUES ($1, $2)",
-          [
-            JOB_TYPES.PROCESS_LOST_ORDER,
-            JSON.stringify({ reference }),
-          ]
-        );
-      }
 
       return ok({ received: true });
     }
