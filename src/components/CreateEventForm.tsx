@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function CreateEventForm() {
   const [title, setTitle] = useState("");
@@ -13,11 +13,62 @@ export default function CreateEventForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Cover image state
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   function generateSlug(title: string) {
     return title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
+  }
+
+  async function handleCoverUpload(file: File) {
+    setUploadStatus("Enviando...");
+    setCoverPreview(URL.createObjectURL(file));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        const url = json.data?.url || json.url;
+        setCoverUrl(url);
+        setUploadStatus("Upload concluído");
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setUploadStatus(json.error || "Erro no upload");
+        setCoverPreview(null);
+      }
+    } catch {
+      setUploadStatus("Erro de conexão.");
+      setCoverPreview(null);
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    handleCoverUpload(file);
+  }
+
+  function handleRemoveCover() {
+    setCoverFile(null);
+    setCoverPreview(null);
+    setCoverUrl(null);
+    setUploadStatus("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -27,19 +78,25 @@ export default function CreateEventForm() {
     setLoading(true);
 
     try {
+      const body: Record<string, unknown> = {
+        title,
+        slug: slug || generateSlug(title),
+        description,
+        venue_name: venueName,
+        venue_address: venueAddress,
+        start_at: new Date(startAt).toISOString(),
+        end_at: new Date(endAt).toISOString(),
+        timezone: "America/Sao_Paulo",
+      };
+
+      if (coverUrl) {
+        body.cover_image_url = coverUrl;
+      }
+
       const res = await fetch("/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          slug: slug || generateSlug(title),
-          description,
-          venue_name: venueName,
-          venue_address: venueAddress,
-          start_at: new Date(startAt).toISOString(),
-          end_at: new Date(endAt).toISOString(),
-          timezone: "America/Sao_Paulo",
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
@@ -109,6 +166,37 @@ export default function CreateEventForm() {
         <label htmlFor="venueAddress" style={{ display: "block", marginBottom: 4, fontWeight: 600, fontSize: "0.9rem" }}>Endereço</label>
         <input id="venueAddress" type="text" value={venueAddress} onChange={(e) => setVenueAddress(e.target.value)}
           style={{ width: "100%", padding: "10px 12px", border: "1px solid #ccc", borderRadius: 6, fontSize: "1rem", boxSizing: "border-box" }} />
+      </div>
+
+      {/* Cover image upload */}
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ display: "block", marginBottom: 4, fontWeight: 600, fontSize: "0.9rem" }}>Imagem de Capa</label>
+        <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "#888" }}>Opcional. Formatos: JPEG, PNG, GIF, WebP. Máximo: 5MB.</p>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          onChange={handleFileChange}
+          style={{ display: "block", marginBottom: 8 }}
+        />
+
+        {uploadStatus && !coverUrl && uploadStatus !== "Upload concluído" && (
+          <p style={{ margin: "4px 0", fontSize: "0.85rem", color: "#666" }}>{uploadStatus}</p>
+        )}
+
+        {coverPreview && (
+          <div style={{ position: "relative", display: "inline-block", marginTop: 8 }}>
+            <img src={coverPreview} alt="Preview" style={{ maxWidth: 200, maxHeight: 120, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+            <button type="button" onClick={handleRemoveCover}
+              style={{ position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: "50%", background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", lineHeight: 1 }}>
+              ✕
+            </button>
+            {coverUrl && (
+              <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "#166534" }}>Upload concluído</p>
+            )}
+          </div>
+        )}
       </div>
 
       <button type="submit" disabled={loading}
