@@ -61,6 +61,52 @@ export function buildWelcomeEmail(params: {
 }
 
 /**
+ * Build the password reset email HTML.
+ *
+ * @param params.email - The organizer's email address
+ * @param params.resetUrl - Full URL to reset password (includes the raw token)
+ */
+export function buildPasswordResetEmail(params: {
+  email: string;
+  resetUrl: string;
+}): string {
+  const safeEmail = escapeHtml(params.email);
+  const safeResetUrl = escapeHtml(params.resetUrl);
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #333;">🔐 Redefinição de senha</h1>
+      <p>Olá,</p>
+      <p>Recebemos uma solicitação para redefinir a senha da conta <strong>${safeEmail}</strong>.</p>
+      <p>Clique no botão abaixo para criar uma nova senha. Este link expira em <strong>1 hora</strong>.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+        <tr>
+          <td style="background: #171717; border-radius: 6px; text-align: center;">
+            <a href="${safeResetUrl}" style="display: inline-block; padding: 12px 24px; color: #fff; text-decoration: none; font-size: 16px; font-weight: 600;">
+              Redefinir senha
+            </a>
+          </td>
+        </tr>
+      </table>
+      <p style="color: #666; font-size: 14px;">
+        Se você não solicitou esta redefinição, ignore este email. Nenhuma alteração será feita.
+      </p>
+      <p style="color: #666; font-size: 14px;">
+        Link direto: <a href="${safeResetUrl}" style="color: #171717;">${safeResetUrl}</a>
+      </p>
+      <hr style="margin-top: 30px;">
+      <p style="color: #999; font-size: 12px;">
+        Ticket — Plataforma de venda de ingressos
+      </p>
+    </body>
+    </html>
+  `.trim();
+}
+
+/**
  * Build the order confirmation email HTML.
  *
  * @param params.attendeeName  - Display name for the greeting
