@@ -9,15 +9,12 @@ export const SITE_DESCRIPTION =
 
 /** Recognized job types for the pending_jobs queue. Centralized to prevent typos. */
 export const JOB_TYPES = {
+  SEND_CONFIRMATION_EMAIL: "send_confirmation_email",
   PROCESS_PAID_ORDER: "process_paid_order",
   PROCESS_LOST_ORDER: "process_lost_order",
-  RETRY_ABACATEPAY_CHECKOUT: "retry_abacatepay_checkout",
-  SEND_CONFIRMATION_EMAIL: "send_confirmation_email",
-  SEND_WELCOME_EMAIL: "send_welcome_email",
-  PROCESS_EXPIRED_ORDERS: "process_expired_orders",
 } as const;
 
-export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
+export type JobType = "send_confirmation_email" | "process_paid_order" | "process_lost_order";
 
 /** Session cookie name — used by httpOnly Set-Cookie and proxy/server auth */
 export const SESSION_COOKIE_NAME = "ticket_session";
