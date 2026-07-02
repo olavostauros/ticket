@@ -13,7 +13,8 @@ export const POST: APIRoute = async (context) => {
     if (!user) return err("Unauthorized", 401, "unauthorized");
 
     const ip = getClientIp(context.request);
-    const { allowed, resetAt } = checkRateLimit(`checkin:${ip}`, 30, 60_000);
+    const kv = (context.locals as any)?.runtime?.env?.RATE_LIMIT as KVNamespace | undefined;
+    const { allowed, resetAt } = await checkRateLimit(`checkin:${ip}`, 30, 60_000, kv);
     if (!allowed) return rateLimitResponse(resetAt);
 
     const body = await context.request.json();
@@ -28,8 +29,8 @@ export const POST: APIRoute = async (context) => {
       [ticket_code]
     );
     const ticket = ticketResult.rows[0];
-    if (!ticket) return err("Ticket not found", 404, "ticket_not_found");
-    if (ticket.organizer_id !== user.id) return err("This ticket is not for your event", 403, "forbidden");
+    if (!ticket) return err("Ingresso não encontrado", 404, "ticket_not_found");
+    if (ticket.organizer_id !== user.id) return err("Este ingresso não pertence ao seu evento", 403, "forbidden");
 
     if (ticket.checked_in_at) {
       // Re-entry — record check-in but indicate it's a re-entry

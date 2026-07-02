@@ -20,12 +20,13 @@ export async function onRequest(context: APIContext, next: MiddlewareNext): Prom
     return next();
   }
 
-  // Periodic cleanup of stale rate limiter entries
+  // Periodic cleanup of stale rate limiter entries (in-memory fallback)
   cleanupRateLimiter();
 
   // Global rate limit: 30 requests per minute per IP
   const ip = getClientIp(context.request);
-  const { allowed, resetAt } = checkRateLimit(`global:${ip}`, 30, 60_000);
+  const kv = (context.locals as any)?.runtime?.env?.RATE_LIMIT as KVNamespace | undefined;
+  const { allowed, resetAt } = await checkRateLimit(`global:${ip}`, 30, 60_000, kv);
 
   if (!allowed) {
     return rateLimitResponse(resetAt);

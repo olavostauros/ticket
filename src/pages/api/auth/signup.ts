@@ -14,7 +14,8 @@ import { buildWelcomeEmail } from "../../../lib/email-templates";
 export const POST: APIRoute = async (context) => {
   try {
     const ip = getClientIp(context.request);
-    const { allowed, resetAt } = checkRateLimit(`signup:${ip}`, 3, 60_000);
+    const kv = (context.locals as any)?.runtime?.env?.RATE_LIMIT as KVNamespace | undefined;
+    const { allowed, resetAt } = await checkRateLimit(`signup:${ip}`, 3, 60_000, kv);
     if (!allowed) return rateLimitResponse(resetAt);
 
     const body = await context.request.json();
@@ -46,7 +47,7 @@ export const POST: APIRoute = async (context) => {
       html: buildWelcomeEmail({ name, appUrl }),
     }).catch((err: Error) => console.error(`Failed to send welcome email to ${normalizedEmail}:`, err));
 
-    const token = signToken({ id: organizer.id, email: organizer.email });
+    const token = await signToken({ id: organizer.id, email: organizer.email });
     const response = ok({ organizer }, 201);
 
     context.cookies.set(SESSION_COOKIE_NAME, token, {

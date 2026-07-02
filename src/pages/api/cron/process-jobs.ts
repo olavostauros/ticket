@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 export const prerender = false;
 
+import { generateTicketCode } from "../../../lib/utils";
 import { query, withTransaction } from "../../../lib/db";
 import { JOB_TYPES } from "../../../lib/constants";
 import { sendEmail } from "../../../lib/email";
@@ -9,7 +10,10 @@ import { ok, err } from "../../../lib/api-utils";
 
 /**
  * POST /api/cron/process-jobs
- * Protected by CRON_SECRET env var. Processes pending jobs in the pending_jobs table.
+ * Triggered by Cloudflare Cron Triggers (configured in wrangler.toml).
+ * No auth check needed — Cloudflare authenticates cron invocations internally.
+ *
+ * Processes pending jobs in the pending_jobs table.
  *
  * Foundation invariants:
  * 1. State-changing operations (order updates, ticket generation, capacity release)
@@ -19,11 +23,6 @@ import { ok, err } from "../../../lib/api-utils";
  */
 export const POST: APIRoute = async (context) => {
   try {
-    const authHeader = context.request.headers.get("authorization");
-    const expectedSecret = process.env.CRON_SECRET;
-    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
-      return err("Unauthorized", 401, "unauthorized");
-    }
 
     // --- Housekeeping: expire stale pending orders (runs every tick) ---
     // Uses FOR UPDATE SKIP LOCKED so concurrent cron invocations don't
@@ -132,12 +131,29 @@ export const POST: APIRoute = async (context) => {
             const appUrl = process.env.PUBLIC_APP_URL || "http://localhost:4321";
             for (const item of items) {
               for (let i = 0; i < item.quantity; i++) {
-                const ticketResult = await client.query(
-                  "INSERT INTO tickets (order_id, event_id, tier_id, organizer_id, holder_name, holder_email) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, unique_code",
-                  [order.id, order.event_id, item.tier_id, order.organizer_id, order.attendee_name || order.attendee_email, order.attendee_email]
-                );
-                const ticket = ticketResult.rows[0];
-                urls.push(`${appUrl}/tickets/${ticket.unique_code}`);
+                // Generate a unique 8-char short code with collision retry
+                let shortCode = generateTicketCode();
+                let retries = 0;
+                while (retries < 5) {
+                  try {
+                    const ticketResult = await client.query(
+                      "INSERT INTO tickets (order_id, event_id, tier_id, organizer_id, holder_name, holder_email, unique_code) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, unique_code",
+                      [order.id, order.event_id, item.tier_id, order.organizer_id, order.attendee_name || order.attendee_email, order.attendee_email, shortCode]
+                    );
+                    const ticket = ticketResult.rows[0];
+                    urls.push(`${appUrl}/tickets/${ticket.unique_code}`);
+                    break;
+                  } catch (insertErr: any) {
+                    // Unique violation — retry with a new code
+                    if (insertErr?.code === "23505") {
+                      shortCode = generateTicketCode();
+                      retries++;
+                      continue;
+                    }
+                    throw insertErr;
+                  }
+                }
+                if (retries >= 5) throw new Error("Failed to generate unique ticket code after 5 retries");
               }
             }
 

@@ -19,7 +19,8 @@ import { buildPasswordResetEmail } from "../../../lib/email-templates";
 export const POST: APIRoute = async (context) => {
   try {
     const ip = getClientIp(context.request);
-    const { allowed, resetAt } = checkRateLimit(`forgot-password:${ip}`, 3, 60_000);
+    const kv = (context.locals as any)?.runtime?.env?.RATE_LIMIT as KVNamespace | undefined;
+    const { allowed, resetAt } = await checkRateLimit(`forgot-password:${ip}`, 3, 60_000, kv);
     if (!allowed) return rateLimitResponse(resetAt);
 
     const body = await context.request.json();

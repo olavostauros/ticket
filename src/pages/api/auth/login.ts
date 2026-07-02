@@ -12,7 +12,8 @@ import { ok, err } from "../../../lib/api-utils";
 export const POST: APIRoute = async (context) => {
   try {
     const ip = getClientIp(context.request);
-    const { allowed, resetAt } = checkRateLimit(`login:${ip}`, 5, 60_000);
+    const kv = (context.locals as any)?.runtime?.env?.RATE_LIMIT as KVNamespace | undefined;
+    const { allowed, resetAt } = await checkRateLimit(`login:${ip}`, 5, 60_000, kv);
     if (!allowed) return rateLimitResponse(resetAt);
 
     const body = await context.request.json();
@@ -30,7 +31,7 @@ export const POST: APIRoute = async (context) => {
     const valid = await verifyPassword(password, organizer.password_hash);
     if (!valid) return err("Email ou senha incorretos.", 401, "auth_failed");
 
-    const token = signToken({ id: organizer.id, email: organizer.email });
+    const token = await signToken({ id: organizer.id, email: organizer.email });
 
     const { password_hash, ...safeOrganizer } = organizer;
     const response = ok({ organizer: safeOrganizer });

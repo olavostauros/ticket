@@ -12,7 +12,8 @@ import { ok, err } from "../../lib/api-utils";
 export const POST: APIRoute = async (context) => {
   try {
     const ip = getClientIp(context.request);
-    const { allowed, resetAt } = checkRateLimit(`checkout:${ip}`, 10, 60_000);
+    const kv = (context.locals as any)?.runtime?.env?.RATE_LIMIT as KVNamespace | undefined;
+    const { allowed, resetAt } = await checkRateLimit(`checkout:${ip}`, 10, 60_000, kv);
     if (!allowed) return rateLimitResponse(resetAt);
 
     const body = await context.request.json();
@@ -32,8 +33,8 @@ export const POST: APIRoute = async (context) => {
     // Fetch event (read-only, outside transaction)
     const eventResult = await query("SELECT id, organizer_id, title, status FROM events WHERE id = $1", [event_id]);
     const event = eventResult.rows[0];
-    if (!event) return err("Event not found", 404, "not_found");
-    if (event.status !== "published") return err("Event is not available", 400, "event_not_available");
+    if (!event) return err("Evento não encontrado", 404, "not_found");
+    if (event.status !== "published") return err("Evento não disponível para venda", 400, "event_not_available");
 
     const reference = generateOrderReference();
     const appUrl = process.env.PUBLIC_APP_URL || "http://localhost:4321";
