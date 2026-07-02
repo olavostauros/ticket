@@ -39,18 +39,18 @@ export const PATCH: APIRoute = async (context) => {
     );
   }
 
-  const { error: updateError } = await query(
-    "UPDATE organizers SET name = $1, avatar_url = $2, pix_key = $3, pix_key_type = $4 WHERE id = $5",
-    [
-      parsed.data.name,
-      parsed.data.avatar_url,
-      parsed.data.pix_key,
-      parsed.data.pix_key_type,
-      user.id,
-    ]
-  );
-
-  if (updateError) {
+  try {
+    await query(
+      "UPDATE organizers SET name = $1, avatar_url = $2, pix_key = $3, pix_key_type = $4 WHERE id = $5",
+      [
+        parsed.data.name,
+        parsed.data.avatar_url,
+        parsed.data.pix_key,
+        parsed.data.pix_key_type,
+        user.id,
+      ]
+    );
+  } catch (updateError) {
     console.error("Profile update error:", updateError);
     return err("Failed to update profile", 500, "db_error");
   }
