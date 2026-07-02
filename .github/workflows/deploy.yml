@@ -32,7 +32,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Run tests
         run: bun test
@@ -47,7 +47,7 @@ jobs:
           ABACATEPAY_API_KEY: placeholder
           ABACATEPAY_WEBHOOK_SECRET: placeholder
           RESEND_API_KEY: placeholder
-          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://ticket.pages.dev' }}
+          PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://ticket-bbm.pages.dev' }}
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
