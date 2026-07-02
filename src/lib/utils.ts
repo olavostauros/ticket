@@ -34,27 +34,3 @@ export function generateOrderReference(): string {
   return result;
 }
 
-/**
- * Generate a unique idempotency key for testing.
- */
-export function generateIdempotencyKey(): string {
-  return randomUUID();
-}
-
-/**
- * Sleep for a given number of milliseconds (async).
- */
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
- * Safely parse JSON, returning the default value on failure.
- */
-export function safeJsonParse<T>(json: string, fallback: T): T {
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return fallback;
-  }
-}
