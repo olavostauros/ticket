@@ -1,12 +1,15 @@
 /**
- * Simple in-memory sliding-window rate limiter.
+ * Sliding-window rate limiter.
  *
- * Uses a Map keyed by IP address. Resets on deploy — good enough for MVP.
+ * Dual mode:
+ * - In Cloudflare Workers: uses KV namespace with TTL-based expiration.
+ * - In local dev / tests: uses in-memory Map as fallback.
+ *
+ * All functions are async for consistency. Callers that don't provide
+ * a KV binding will use the in-memory fallback automatically.
+ *
  * Middleware applies a global rate limit to all API routes as a first line
  * of defense; route-specific handlers apply tighter limits as a second line.
- *
- * @todo Replace with Redis or another distributed store if the app ever
- *       runs on multiple processes/instances.
  */
 
 interface Window {
@@ -51,17 +54,12 @@ function purgeStale() {
 }
 
 /**
- * Check rate limit for a given key.
- *
- * @param key - Usually the IP address or a composite key (ip + route)
- * @param maxAttempts - Maximum allowed requests in the window
- * @param windowMs - Window duration in milliseconds
- * @returns `true` if the request is allowed, `false` if rate-limited
+ * Check rate limit — in-memory fallback (local dev / tests).
  */
-export function checkRateLimit(
+function checkRateLimitMem(
   key: string,
-  maxAttempts = 5,
-  windowMs = 60_000
+  maxAttempts: number,
+  windowMs: number
 ): { allowed: boolean; remaining: number; resetAt: number } {
   purgeStale();
 
@@ -69,7 +67,6 @@ export function checkRateLimit(
   const entry = windows.get(key);
 
   if (!entry || now >= entry.resetAt) {
-    // Fresh window
     windows.set(key, { count: 1, resetAt: now + windowMs, lastAccessed: now });
     return { allowed: true, remaining: maxAttempts - 1, resetAt: now + windowMs };
   }
@@ -83,7 +80,71 @@ export function checkRateLimit(
 }
 
 /**
- * Reset all rate limit windows. Used in testing.
+ * Check rate limit — KV-backed (Cloudflare Workers).
+ */
+async function checkRateLimitKV(
+  key: string,
+  maxAttempts: number,
+  windowMs: number,
+  kv: KVNamespace
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const now = Date.now();
+  const record = await kv.get(key);
+
+  if (!record) {
+    const resetAt = now + windowMs;
+    await kv.put(key, JSON.stringify({ count: 1, resetAt }), {
+      expirationTtl: Math.ceil(windowMs / 1000),
+    });
+    return { allowed: true, remaining: maxAttempts - 1, resetAt };
+  }
+
+  const data: Window = JSON.parse(record);
+
+  if (now >= data.resetAt) {
+    const resetAt = now + windowMs;
+    await kv.put(key, JSON.stringify({ count: 1, resetAt }), {
+      expirationTtl: Math.ceil(windowMs / 1000),
+    });
+    return { allowed: true, remaining: maxAttempts - 1, resetAt };
+  }
+
+  data.count += 1;
+  data.lastAccessed = now;
+  const allowed = data.count <= maxAttempts;
+  const remaining = Math.max(0, maxAttempts - data.count);
+
+  await kv.put(key, JSON.stringify(data), {
+    expirationTtl: Math.ceil((data.resetAt - now) / 1000),
+  });
+
+  return { allowed, remaining, resetAt: data.resetAt };
+}
+
+/**
+ * Check rate limit for a given key.
+ *
+ * @param key - Usually the IP address or a composite key (ip + route)
+ * @param maxAttempts - Maximum allowed requests in the window
+ * @param windowMs - Window duration in milliseconds
+ * @param kv - Optional KV namespace. If provided, uses KV-backed storage.
+ *             If omitted, uses in-memory Map (local dev / tests).
+ * @returns `{ allowed, remaining, resetAt }`
+ */
+export async function checkRateLimit(
+  key: string,
+  maxAttempts = 5,
+  windowMs = 60_000,
+  kv?: KVNamespace
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  if (kv) {
+    return checkRateLimitKV(key, maxAttempts, windowMs, kv);
+  }
+  return checkRateLimitMem(key, maxAttempts, windowMs);
+}
+
+/**
+ * Reset all in-memory rate limit windows. Used in testing.
  */
 export function resetRateLimiter(): void {
   windows.clear();
@@ -92,9 +153,8 @@ export function resetRateLimiter(): void {
 }
 
 /**
- * Lightweight cleanup that runs on every middleware invocation.
- * Evicts expired entries and enforces the MAX_ENTRIES cap.
- * Uses a counter to only do the full scan every 10 calls.
+ * Lightweight in-memory cleanup. Only relevant when using in-memory fallback
+ * (no KV). KV handles expiration via TTL automatically.
  */
 export function cleanupRateLimiter(): void {
   evictionCounter++;
@@ -118,7 +178,7 @@ export function cleanupRateLimiter(): void {
 }
 
 /**
- * Extract client IP from a Next.js request object.
+ * Extract client IP from a Request object.
  * Checks common headers in order of preference.
  */
 export function getClientIp(request: Request): string {
