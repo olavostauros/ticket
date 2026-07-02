@@ -18,8 +18,8 @@ export const POST: APIRoute = async (context) => {
     }
 
     const result = await query(
-      `INSERT INTO events (organizer_id, title, slug, description, venue_name, venue_address, start_at, end_at, timezone)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO events (organizer_id, title, slug, description, venue_name, venue_address, start_at, end_at, timezone, cover_image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         user.id,
@@ -31,6 +31,7 @@ export const POST: APIRoute = async (context) => {
         parsed.data.start_at,
         parsed.data.end_at,
         parsed.data.timezone || "America/Sao_Paulo",
+        parsed.data.cover_image_url,
       ]
     );
 
