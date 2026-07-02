@@ -25,20 +25,35 @@ export const POST: APIRoute = async (context) => {
       return err("Unauthorized", 401, "unauthorized");
     }
 
-    // --- Housekeeping: expire stale pending orders (runs every tick, no job needed) ---
-    const staleOrders = await query(
-      "SELECT id, reference FROM orders WHERE status = 'pending' AND created_at < NOW() - INTERVAL '30 minutes'"
-    );
-    for (const staleOrder of staleOrders.rows) {
-      const items = await query("SELECT * FROM order_items WHERE order_id = $1", [staleOrder.id]);
-      for (const item of items.rows) {
-        await query(
-          "UPDATE tiers SET quantity_sold = GREATEST(0, quantity_sold - $1) WHERE id = $2",
-          [item.quantity, item.tier_id]
+    // --- Housekeeping: expire stale pending orders (runs every tick) ---
+    // Uses FOR UPDATE SKIP LOCKED so concurrent cron invocations don't
+    // fight over the same rows — each stale order is claimed by exactly
+    // one invocation. Everything runs inside withTransaction() so a crash
+    // between releasing capacity and updating the order status never
+    // leaks capacity or leaves inconsistent state.
+    await withTransaction(async (client) => {
+      const staleOrders = await client.query(
+        `SELECT id FROM orders
+         WHERE status = 'pending' AND created_at < NOW() - INTERVAL '30 minutes'
+         FOR UPDATE SKIP LOCKED`
+      );
+      for (const staleOrder of staleOrders.rows) {
+        const items = await client.query(
+          "SELECT * FROM order_items WHERE order_id = $1",
+          [staleOrder.id]
+        );
+        for (const item of items.rows) {
+          await client.query(
+            "UPDATE tiers SET quantity_sold = GREATEST(0, quantity_sold - $1) WHERE id = $2",
+            [item.quantity, item.tier_id]
+          );
+        }
+        await client.query(
+          "UPDATE orders SET status = 'expired' WHERE id = $1",
+          [staleOrder.id]
         );
       }
-      await query("UPDATE orders SET status = 'expired' WHERE id = $1", [staleOrder.id]);
-    }
+    });
 
     const MAX_RETRIES = 3;
     const BATCH_SIZE = 10;
