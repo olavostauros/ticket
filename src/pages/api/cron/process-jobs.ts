@@ -58,18 +58,25 @@ export const POST: APIRoute = async (context) => {
     const MAX_RETRIES = 3;
     const BATCH_SIZE = 10;
 
-    // Fetch next batch of pending jobs
+    // Atomically claim the next batch of pending jobs.
+    // UPDATE ... WHERE id IN (SELECT ... LIMIT ... FOR UPDATE SKIP LOCKED)
+    // marks them as 'processing' and returns them in a single atomic query.
+    // Two concurrent cron invocations each claim disjoint sets — no race window.
     const jobsResult = await query(
-      "SELECT * FROM pending_jobs WHERE status = 'pending' AND retries < $1 ORDER BY created_at ASC LIMIT $2",
+      `UPDATE pending_jobs SET status = 'processing'
+       WHERE id IN (
+         SELECT id FROM pending_jobs
+         WHERE status = 'pending' AND retries < $1
+         ORDER BY created_at ASC
+         LIMIT $2
+         FOR UPDATE SKIP LOCKED
+       )
+       RETURNING *`,
       [MAX_RETRIES, BATCH_SIZE]
     );
     const jobs = jobsResult.rows;
 
     for (const job of jobs) {
-      // Mark as processing (stops it from being re-fetched; if we crash here,
-      // the job stays 'processing' and a subsequent cron run with a wider
-      // "processing OR pending" query could rescue it — acceptable for MVP)
-      await query("UPDATE pending_jobs SET status = 'processing' WHERE id = $1", [job.id]);
 
       try {
         const payload = typeof job.payload === "string" ? JSON.parse(job.payload) : job.payload;
