@@ -99,7 +99,7 @@ export const checkoutSchema = z.object({
 // Check-in
 
 export const checkinSchema = z.object({
-  ticket_code: z.string().uuid("Invalid ticket code"),
+  ticket_code: z.string().min(1, "Código do ingresso é obrigatório"),
 });
 
 // Webhook

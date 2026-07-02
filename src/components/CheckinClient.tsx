@@ -31,14 +31,19 @@ interface CheckinResponse {
 type Mode = "scan" | "manual";
 
 /**
- * Extract the ticket UUID from a scanned QR code value.
+ * Extract the ticket code from a scanned QR code value or manual input.
  * Supports:
- *   - Full URL: https://ticket.app/tickets/<uuid>
- *   - Path: /tickets/<uuid>
- *   - Raw: <uuid>
+ *   - Full URL: https://ticket.app/tickets/<code>  (UUID or short code)
+ *   - Path: /tickets/<code>
+ *   - Raw: <code> (UUID or 8-char short code)
  */
 function extractTicketCode(scanned: string): string | null {
   const trimmed = scanned.trim();
+  if (!trimmed) return null;
+
+  // If the input is an 8-char uppercase hex code, return it directly
+  const shortCodePat = /^[A-F0-9]{8}$/;
+  if (shortCodePat.test(trimmed)) return trimmed;
 
   // UUID pattern
   const uuidPat = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
@@ -46,14 +51,21 @@ function extractTicketCode(scanned: string): string | null {
   // Try to parse as URL first
   try {
     const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    // Check for short code in the last path segment
+    const pathSegments = url.pathname.split("/").filter(Boolean);
+    const lastSegment = pathSegments[pathSegments.length - 1] || "";
+    if (shortCodePat.test(lastSegment)) return lastSegment;
     const match = url.pathname.match(uuidPat);
     if (match) return match[0];
   } catch {
-    // Not a URL — try raw UUID
+    // Not a URL — try raw patterns
   }
 
+  // Try extracting UUID from raw text
   const match = trimmed.match(uuidPat);
-  return match ? match[0] : null;
+  if (match) return match[0];
+
+  return null;
 }
 
 export default function CheckinClient({ slug }: Props) {
@@ -292,7 +304,7 @@ export default function CheckinClient({ slug }: Props) {
             <input
               id="ticket-code"
               type="text"
-              placeholder="Cole o código UUID do ingresso"
+              placeholder="Cole o código do ingresso (ex: A3B4C5D6)"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               style={{

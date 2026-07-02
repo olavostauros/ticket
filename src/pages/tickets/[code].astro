@@ -5,6 +5,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { query } from "../../lib/db";
 
 const { code } = Astro.params;
+if (!code || code.trim().length === 0) return Astro.redirect("/404");
 const result = await query(
   "SELECT t.id, t.holder_name, t.holder_email, t.checked_in_at, t.unique_code, e.title as event_title, e.start_at as event_start_at, e.venue_name as event_venue_name, tr.name as tier_name FROM tickets t LEFT JOIN events e ON t.event_id = e.id LEFT JOIN tiers tr ON t.tier_id = tr.id WHERE t.unique_code = $1",
   [code]

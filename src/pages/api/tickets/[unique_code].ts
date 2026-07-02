@@ -6,12 +6,13 @@ import { ok, err } from "../../../lib/api-utils";
 export const GET: APIRoute = async (context) => {
   try {
     const code = context.params.unique_code!;
+    if (!code || code.trim().length === 0) return err("Código do ingresso inválido", 400, "invalid_code");
     const result = await query(
       "SELECT t.id, t.holder_name, t.holder_email, t.checked_in_at, e.title as event_title, e.start_at as event_start_at, e.venue_name as event_venue_name, tr.name as tier_name FROM tickets t LEFT JOIN events e ON t.event_id = e.id LEFT JOIN tiers tr ON t.tier_id = tr.id WHERE t.unique_code = $1",
       [code]
     );
     const ticket = result.rows[0];
-    if (!ticket) return err("Ticket not found", 404, "ticket_not_found");
+    if (!ticket) return err("Ingresso não encontrado", 404, "ticket_not_found");
     return ok({
       id: ticket.id,
       holder_name: ticket.holder_name,
