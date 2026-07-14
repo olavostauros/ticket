@@ -24,8 +24,6 @@ yarn-error.log*
 
 # pi agent sessions, config & local docs
 .pi/
-.agents/
-AGENTS.md
 
 # local env files
 .env
