@@ -36,7 +36,7 @@ export const GET: APIRoute = async (context) => {
     }
 
     const tiersResult = await query(
-      "SELECT * FROM tiers WHERE event_id = $1 ORDER BY price_cents ASC",
+      "SELECT * FROM tiers WHERE event_id = $1 ORDER BY created_at ASC",
       [event.id]
     );
     const tiers = tiersResult.rows as Tier[];

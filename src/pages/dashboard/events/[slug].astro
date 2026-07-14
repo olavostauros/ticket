@@ -8,7 +8,7 @@ const user = await requireAuth(Astro);
 const slug = Astro.params.slug!;
 const ev = (await query("SELECT * FROM events WHERE slug = $1 AND organizer_id = $2", [slug, user.id])).rows[0];
 if (!ev) return Astro.redirect("/404");
-const tiers = (await query("SELECT * FROM tiers WHERE event_id = $1 ORDER BY price_cents ASC", [ev.id])).rows;
+const tiers = (await query("SELECT * FROM tiers WHERE event_id = $1 ORDER BY created_at ASC", [ev.id])).rows;
 ---
 <DashboardLayout>
   <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px;">
@@ -37,7 +37,7 @@ const tiers = (await query("SELECT * FROM tiers WHERE event_id = $1 ORDER BY pri
       <div>
         <p style="margin: 0; font-weight: 600;">{tier.name}</p>
         <p style="margin: 4px 0 0; color: #666; font-size: 0.875rem;">
-          R$ {(tier.price_cents / 100).toFixed(2).replace(".", ",")} · {tier.quantity_sold}/{tier.quantity_total} vendidos
+          {tier.quantity_sold}/{tier.quantity_total} inscritos
         </p>
       </div>
     </div>

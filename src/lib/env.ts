@@ -2,7 +2,6 @@ export function validateEnv(): void {
   const required = [
     "DATABASE_URL",
     "JWT_SECRET",
-    "ABACATEPAY_API_KEY",
     "RESEND_API_KEY",
     "PUBLIC_APP_URL",
   ] as const;

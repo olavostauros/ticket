@@ -16,12 +16,9 @@ import type {
   Event,
   EventWithTiers,
   Tier,
-  Order,
-  OrderItem,
-  OrderWithItems,
+  Registration,
   Ticket,
   CheckIn,
-  FeeBreakdown,
 } from "../../lib/types";
 
 // ─── Organizer ───────────────────────────────────────────────────
@@ -92,66 +89,33 @@ export function buildTier(overrides: Partial<Tier> = {}): Tier {
     event_id: "event-1",
     name: `Tier ${_tierCounter}`,
     description: null,
-    price_cents: 1000,
     quantity_total: 100,
     quantity_sold: 0,
     sale_start_at: null,
     sale_end_at: null,
-    abacatepay_product_id: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
     ...overrides,
   };
 }
 
-// ─── Order ───────────────────────────────────────────────────────
+// ─── Registration (replaces Order) ──────────────────────────────
 
-let _orderCounter = 0;
+let _regCounter = 0;
 
-export function buildOrder(overrides: Partial<Order> = {}): Order {
-  _orderCounter++;
-  const id = overrides.id ?? `order-${_orderCounter}`;
+export function buildRegistration(overrides: Partial<Registration> = {}): Registration {
+  _regCounter++;
+  const id = overrides.id ?? `reg-${_regCounter}`;
   return {
     id,
     event_id: "event-1",
     organizer_id: "org-1",
     attendee_email: "attendee@example.com",
     attendee_name: null,
-    abacatepay_billing_id: null,
-    abacatepay_checkout_url: null,
-    amount_cents: 1000,
-    fee_cents: 100,
-    abacatepay_fee_cents: 0,
-    currency: "BRL",
-    status: "pending",
-    reference: `TCK-${id.toUpperCase().replace(/-/g, "").slice(0, 8).padEnd(8, "X")}`,
-    idempotency_key: `idemp-${_orderCounter}`,
+    status: "confirmed",
+    reference: `REG-${id.toUpperCase().replace(/-/g, "").slice(0, 8).padEnd(8, "X")}`,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
-    ...overrides,
-  };
-}
-
-// ─── OrderItem ───────────────────────────────────────────────────
-
-export function buildOrderItem(overrides: Partial<OrderItem> = {}): OrderItem {
-  return {
-    id: "oi-1",
-    order_id: "order-1",
-    tier_id: "tier-1",
-    tier_name: "Standard",
-    quantity: 1,
-    unit_price_cents: 1000,
-    created_at: "2026-01-01T00:00:00Z",
-    ...overrides,
-  };
-}
-
-export function buildOrderWithItems(overrides: Partial<OrderWithItems> = {}): OrderWithItems {
-  const base = buildOrder(overrides);
-  return {
-    ...base,
-    items: overrides.items ?? [buildOrderItem({ order_id: base.id })],
     ...overrides,
   };
 }
@@ -165,7 +129,7 @@ export function buildTicket(overrides: Partial<Ticket> = {}): Ticket {
   const id = overrides.id ?? `ticket-${_ticketCounter}`;
   return {
     id,
-    order_id: "order-1",
+    order_id: "reg-1",
     event_id: "event-1",
     tier_id: "tier-1",
     organizer_id: "org-1",
@@ -189,18 +153,6 @@ export function buildCheckIn(overrides: Partial<CheckIn> = {}): CheckIn {
     checked_in_by: "org-1",
     timestamp: "2026-06-01T19:00:00Z",
     type: "entry",
-    ...overrides,
-  };
-}
-
-// ─── Fee Breakdown ───────────────────────────────────────────────
-
-export function buildFeeBreakdown(overrides: Partial<FeeBreakdown> = {}): FeeBreakdown {
-  return {
-    subtotal_cents: 2500,
-    platform_fee_cents: 175,
-    abacatepay_fee_cents: 0,
-    total_cents: 2675,
     ...overrides,
   };
 }

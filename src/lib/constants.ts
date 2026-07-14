@@ -10,11 +10,9 @@ export const SITE_DESCRIPTION =
 /** Recognized job types for the pending_jobs queue. Centralized to prevent typos. */
 export const JOB_TYPES = {
   SEND_CONFIRMATION_EMAIL: "send_confirmation_email",
-  PROCESS_PAID_ORDER: "process_paid_order",
-  PROCESS_LOST_ORDER: "process_lost_order",
 } as const;
 
-export type JobType = "send_confirmation_email" | "process_paid_order" | "process_lost_order";
+export type JobType = "send_confirmation_email";
 
 /** Session cookie name — used by httpOnly Set-Cookie and proxy/server auth */
 export const SESSION_COOKIE_NAME = "ticket_session";
@@ -23,19 +21,7 @@ export const SESSION_COOKIE_NAME = "ticket_session";
 export const RESEND_FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL || "Ticket <noreply@ticket.app>";
 
-/**
- * Fee constants — single source of truth.
- * Import these in lib/fees.ts instead of redefining.
- */
-export const PLATFORM_FEE_PERCENT = 0.05;      // 5%
-export const PLATFORM_FEE_FIXED_CENTS = 50;     // R$ 0,50
 
 /** Session TTL in seconds (7 days) */
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
-/** AbacatePay API base URL — overridable via env var */
-export const ABACATEPAY_API_URL =
-  process.env.ABACATEPAY_API_URL || "https://api.abacatepay.com/v1";
-
-/** AbacatePay billing create endpoint */
-export const ABACATEPAY_BILLING_CREATE_URL = `${ABACATEPAY_API_URL}/billing/create`;

@@ -2,14 +2,15 @@
 export const prerender = false;
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import CheckoutForm from "../../components/CheckoutForm";
 
 const eventSlug = Astro.url.searchParams.get("event") || "";
 const tierId = Astro.url.searchParams.get("tier") || undefined;
 ---
-<BaseLayout title="Checkout — Ticket">
-  <main style="max-width: 560px; margin: 0 auto; padding: 24px;">
-    <h1 style="margin: 0;">Finalizar Compra</h1>
-    <CheckoutForm client:load eventSlug={eventSlug} tierId={tierId} />
+<BaseLayout title="Inscrição — Ticket">
+  <main style="max-width: 560px; margin: 0 auto; padding: 24px; text-align: center;">
+    <h1 style="margin: 0;">Inscrição Gratuita</h1>
+    <p style="color: #666; margin-top: 8px;">
+      Acesse <a href="/events/{eventSlug}">a página do evento</a> para se inscrever gratuitamente.
+    </p>
   </main>
 </BaseLayout>

@@ -28,8 +28,8 @@ export const POST: APIRoute = async (context) => {
     }
 
     const result = await query(
-      "INSERT INTO tiers (event_id, name, description, price_cents, quantity_total, sale_start_at, sale_end_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [event.id, parsed.data.name, parsed.data.description, parsed.data.price_cents, parsed.data.quantity_total, parsed.data.sale_start_at || null, parsed.data.sale_end_at || null]
+      "INSERT INTO tiers (event_id, name, description, quantity_total, sale_start_at, sale_end_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [event.id, parsed.data.name, parsed.data.description, parsed.data.quantity_total, parsed.data.sale_start_at || null, parsed.data.sale_end_at || null]
     );
     return ok(result.rows[0], 201);
   } catch (caughtErr) {

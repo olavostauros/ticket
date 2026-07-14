@@ -7,8 +7,7 @@ export interface EventDashboardStats {
     slug: string;
   };
   stats: {
-    total_orders: number;
-    total_revenue_cents: number;
+    total_registrations: number;
     total_tickets_sold: number;
     total_checked_in: number;
     remaining_capacity: number | null;
@@ -35,10 +34,9 @@ export async function getEventDashboardStats(
 
   const statsResult = await query(
     `SELECT
-       COUNT(*)::int AS total_orders,
-       COALESCE(SUM(amount_cents), 0)::int AS total_revenue_cents
-     FROM orders
-     WHERE event_id = $1 AND status = 'paid'`,
+       COUNT(*)::int AS total_registrations
+     FROM registrations
+     WHERE event_id = $1`,
     [eventId]
   );
 
@@ -67,8 +65,7 @@ export async function getEventDashboardStats(
       slug: event.slug,
     },
     stats: {
-      total_orders: statsResult.rows[0].total_orders,
-      total_revenue_cents: statsResult.rows[0].total_revenue_cents,
+      total_registrations: statsResult.rows[0].total_registrations,
       total_tickets_sold: ticketResult.rows[0].total_tickets_sold,
       total_checked_in: ticketResult.rows[0].total_checked_in,
       remaining_capacity: capacityResult.rows[0].remaining_capacity,

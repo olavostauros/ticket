@@ -4,7 +4,8 @@
 // Enums
 
 export type EventStatus = "draft" | "published" | "canceled";
-export type OrderStatus = "pending" | "paid" | "expired" | "lost";
+// Registration status (renamed from OrderStatus for free MVP)
+export type OrderStatus = "confirmed" | "canceled";
 export type CheckInType = "entry" | "reentry";
 export type PixKeyType = "cpf" | "cnpj" | "email" | "phone" | "random";
 export type JobStatus = "pending" | "processing" | "done" | "failed";
@@ -53,56 +54,33 @@ export interface Tier {
   event_id: string;
   name: string;
   description: string | null;
-  price_cents: number;
   quantity_total: number;
   quantity_sold: number;
   sale_start_at: string | null;
   sale_end_at: string | null;
-  abacatepay_product_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
-// Order
+// Registration (replaces Order in free MVP)
 
-export interface Order {
+export interface Registration {
   id: string;
   event_id: string;
   organizer_id: string;
   attendee_email: string;
   attendee_name: string | null;
-  abacatepay_billing_id: string | null;
-  abacatepay_checkout_url: string | null;
-  amount_cents: number;
-  fee_cents: number;
-  abacatepay_fee_cents: number;
-  currency: string;
   status: OrderStatus;
   reference: string;
-  idempotency_key: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface OrderItem {
-  id: string;
-  order_id: string;
-  tier_id: string;
-  tier_name: string;
-  quantity: number;
-  unit_price_cents: number;
-  created_at: string;
-}
-
-export interface OrderWithItems extends Order {
-  items: OrderItem[];
 }
 
 // Ticket
 
 export interface Ticket {
   id: string;
-  order_id: string;
+  registration_id: string;
   event_id: string;
   tier_id: string;
   organizer_id: string;
@@ -149,11 +127,3 @@ export interface ApiSuccess<T> {
   data: T;
 }
 
-// Fee Breakdown
-
-export interface FeeBreakdown {
-  subtotal_cents: number;
-  platform_fee_cents: number;
-  abacatepay_fee_cents: number;
-  total_cents: number;
-}

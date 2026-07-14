@@ -15,7 +15,7 @@
  *   afterEach(async () => { await teardown(); });
  */
 
-import type { Organizer, Event, Tier } from "../../lib/types";
+import type { Organizer, Event, Tier, Registration } from "../../lib/types";
 
 // ─── Seed helpers ────────────────────────────────────────────────
 
@@ -23,6 +23,7 @@ export interface SeedData {
   organizer: Organizer;
   events: Event[];
   tiers: Tier[];
+  registrations: Registration[];
 }
 
 /**

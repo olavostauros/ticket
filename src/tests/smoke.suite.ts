@@ -89,7 +89,6 @@ describe("Tier 2 — Comprehensive Smoke Tests", () => {
       "/forgot-password",
       "/privacy",
       "/my-tickets",
-      "/checkout",
     ];
 
     for (const path of publicPages) {
@@ -203,7 +202,6 @@ describe("Tier 2 — Comprehensive Smoke Tests", () => {
       "/api/auth/signup",
       "/api/auth/logout",
       "/api/auth/forgot-password",
-      "/api/checkout",
       "/api/checkin",
       "/api/upload",
       "/api/events",

@@ -31,7 +31,7 @@ describe("Events API", () => {
   it("GET /api/events/[slug] — returns published event", async () => {
     const { query } = await import("../lib/db");
     (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "event-1", slug: "my-event", title: "My Event", status: "published", description: "", venue_name: null, venue_address: null, start_at: "2025-06-01T14:00:00.000Z", end_at: "2025-06-01T22:00:00.000Z", timezone: "America/Sao_Paulo", cover_image_url: null, organizer_id: "org-1" }] });
-    (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "tier-1", event_id: "event-1", name: "General", price_cents: 2500, quantity_total: 100, quantity_sold: 0, description: null, sale_start_at: null, sale_end_at: null, abacatepay_product_id: null }] });
+    (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "tier-1", event_id: "event-1", name: "General", quantity_total: 100, quantity_sold: 0, description: null, sale_start_at: null, sale_end_at: null }] });
     const res = await (await import("../pages/api/events/[slug]")).GET({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event") } as any);
     expect(res.status).toBe(200);
   });
@@ -100,22 +100,22 @@ describe("Events API", () => {
   it("POST /api/events/[slug]/tiers — adds tier", async () => {
     const { query } = await import("../lib/db");
     (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "event-1", organizer_id: "org-1", status: "draft" }] });
-    (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "tier-1", name: "General", price_cents: 2500, quantity_total: 100 }] });
-    const res = await (await import("../pages/api/events/[slug]/tiers")).POST({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event/tiers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "General", price_cents: 2500, quantity_total: 100 }) }) } as any);
+    (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "tier-1", name: "General", quantity_total: 100 }] });
+    const res = await (await import("../pages/api/events/[slug]/tiers")).POST({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event/tiers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "General", quantity_total: 100 }) }) } as any);
     expect(res.status).toBe(201);
   });
 
   it("POST /api/events/[slug]/tiers — returns 400 for missing name", async () => {
     const { query } = await import("../lib/db");
     (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "event-1", organizer_id: "org-1", status: "draft" }] });
-    const res = await (await import("../pages/api/events/[slug]/tiers")).POST({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event/tiers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "", price_cents: 2500, quantity_total: 10 }) }) } as any);
+    const res = await (await import("../pages/api/events/[slug]/tiers")).POST({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event/tiers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "", quantity_total: 10 }) }) } as any);
     expect(res.status).toBe(400);
   });
 
   it("POST /api/events/[slug]/tiers — returns 403 for wrong owner", async () => {
     const { query } = await import("../lib/db");
     (query as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ rows: [{ id: "event-1", organizer_id: "org-2", status: "draft" }] });
-    const res = await (await import("../pages/api/events/[slug]/tiers")).POST({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event/tiers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "General", price_cents: 2500, quantity_total: 100 }) }) } as any);
+    const res = await (await import("../pages/api/events/[slug]/tiers")).POST({ params: { slug: "my-event" }, request: new Request("http://localhost:4321/api/events/my-event/tiers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "General", quantity_total: 100 }) }) } as any);
     expect(res.status).toBe(403);
   });
 });
