@@ -15,8 +15,6 @@ export const loginSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100).optional(),
-  pix_key: z.string().max(100).optional(),
-  pix_key_type: z.enum(["cpf", "cnpj", "email", "phone", "random"]).optional(),
   avatar_url: z.string().url().optional(),
 });
 

@@ -119,7 +119,7 @@ describe("Tier 2 — Comprehensive Smoke Tests", () => {
       expect([200, 302, 404]).toContain(code);
     });
 
-    it("GET /order/REF123/success returns 200, 302, or 404 (order not found)", async () => {
+    it("GET /order/REF123/success returns 200, 302, or 404 (registration not found)", async () => {
       const code = await status("/order/REF123/success");
       expect([200, 302, 404]).toContain(code);
     });

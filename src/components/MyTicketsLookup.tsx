@@ -5,7 +5,7 @@ import { useState } from "react";
 export default function MyTicketsLookup() {
   const [email, setEmail] = useState("");
   const [reference, setReference] = useState("");
-  const [orders, setOrders] = useState<any[] | null>(null);
+  const [registrations, setRegistrations] = useState<any[] | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -36,9 +36,9 @@ export default function MyTicketsLookup() {
       const json = await res.json();
 
       if (res.ok) {
-        setOrders(json.data?.orders || json.orders || []);
+        setRegistrations(json.data?.registrations || json.registrations || []);
       } else {
-        setError(json.error || "Erro ao consultar pedidos.");
+        setError(json.error || "Erro ao consultar inscrições.");
       }
     } catch {
       setError("Erro de conexão. Tente novamente.");
@@ -78,41 +78,41 @@ export default function MyTicketsLookup() {
         </button>
       </form>
 
-      {searched && !loading && orders && orders.length === 0 && (
+      {searched && !loading && registrations && registrations.length === 0 && (
         <div style={{ marginTop: 32, padding: 24, textAlign: "center", border: "1px solid #e5e7eb", borderRadius: 8, color: "#888" }}>
-          <p style={{ fontSize: "1.1rem", margin: 0 }}>Nenhum pedido encontrado.</p>
+          <p style={{ fontSize: "1.1rem", margin: 0 }}>Nenhuma inscrição encontrada.</p>
           <p style={{ margin: "8px 0 0", fontSize: "0.9rem" }}>Verifique o email ou o código informado.</p>
         </div>
       )}
 
-      {searched && !loading && orders && orders.length > 0 && (
+      {searched && !loading && registrations && registrations.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <h2 style={{ margin: "0 0 16px", fontSize: "1.1rem" }}>Pedidos Encontrados ({orders.length})</h2>
+          <h2 style={{ margin: "0 0 16px", fontSize: "1.1rem" }}>Inscrições Encontradas ({registrations.length})</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {orders.map((order: any) => (
-              <div key={order.id} style={{ padding: 16, border: "1px solid #e5e7eb", borderRadius: 8 }}>
+            {registrations.map((reg: any) => (
+              <div key={reg.id} style={{ padding: 16, border: "1px solid #e5e7eb", borderRadius: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 8 }}>
                   <div>
                     <p style={{ margin: 0, fontWeight: 600 }}>
-                      {order.event_title || "Evento"}
+                      {reg.event_title || "Evento"}
                     </p>
                     <p style={{ margin: "4px 0 0", color: "#666", fontSize: "0.875rem" }}>
-                      Pedido: <strong>{order.reference}</strong>
+                      Inscrição: <strong>{reg.reference}</strong>
                     </p>
                   </div>
                   <span style={{
                     padding: "2px 10px", borderRadius: 999, fontSize: "0.8rem", fontWeight: 600,
-                    background: order.status === "paid" ? "#dcfce7" : order.status === "pending" ? "#fefce8" : "#f3f4f6",
-                    color: order.status === "paid" ? "#166534" : order.status === "pending" ? "#854d0e" : "#6b7280",
+                    background: reg.status === "confirmed" ? "#dcfce7" : "#f3f4f6",
+                    color: reg.status === "confirmed" ? "#166534" : "#6b7280",
                   }}>
-                    {order.status === "paid" ? "✅ Pago" : order.status === "pending" ? "⏳ Pendente" : "❌ " + order.status}
+                    {reg.status === "confirmed" ? "✅ Confirmada" : "❌ " + reg.status}
                   </span>
                 </div>
                 <p style={{ margin: "4px 0 0", fontSize: "0.875rem", color: "#888" }}>
-                  {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                  {new Date(reg.created_at).toLocaleDateString("pt-BR")}
                 </p>
-                {order.status === "paid" && (
-                  <a href={`/order/${order.reference}/success`} style={{ display: "inline-block", marginTop: 8, color: "#1a73e8", fontSize: "0.875rem" }}>
+                {reg.status === "confirmed" && (
+                  <a href={`/order/${reg.reference}/success`} style={{ display: "inline-block", marginTop: 8, color: "#1a73e8", fontSize: "0.875rem" }}>
                     Ver ingressos →
                   </a>
                 )}

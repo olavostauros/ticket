@@ -7,7 +7,6 @@ export type EventStatus = "draft" | "published" | "canceled";
 // Registration status (renamed from OrderStatus for free MVP)
 export type OrderStatus = "confirmed" | "canceled";
 export type CheckInType = "entry" | "reentry";
-export type PixKeyType = "cpf" | "cnpj" | "email" | "phone" | "random";
 export type JobStatus = "pending" | "processing" | "done" | "failed";
 
 // Organizer
@@ -17,8 +16,6 @@ export interface Organizer {
   email: string;
   name: string;
   avatar_url: string | null;
-  pix_key: string | null;
-  pix_key_type: PixKeyType | null;
   verified_at: string | null;
   created_at: string;
   updated_at: string;

@@ -21,9 +21,9 @@ export const POST: APIRoute = async (context) => {
     const orgCheck = await query("SELECT id FROM organizers WHERE id = $1", [user.id]);
     if (!orgCheck.rows[0]) return err("Only organizers can request data deletion", 403, "forbidden");
 
-    // Anonymize attendee data in orders and tickets for this organizer's events
+    // Anonymize attendee data in registrations and tickets for this organizer's events
     await query(
-      `UPDATE orders SET attendee_email = 'redacted@example.com', attendee_name = 'Redactado' WHERE attendee_email = $1 AND organizer_id = $2`,
+      `UPDATE registrations SET attendee_email = 'redacted@example.com', attendee_name = 'Redactado' WHERE attendee_email = $1 AND organizer_id = $2`,
       [email, user.id]
     );
     await query(

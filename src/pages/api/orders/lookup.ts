@@ -15,16 +15,16 @@ export const POST: APIRoute = async (context) => {
     const { email, reference } = body;
     if (!email && !reference) return err("Informe email ou código do pedido", 400, "missing_params");
 
-    let queryText = "SELECT o.*, e.title as event_title FROM orders o LEFT JOIN events e ON o.event_id = e.id WHERE";
+    let queryText = "SELECT r.*, e.title as event_title FROM registrations r LEFT JOIN events e ON r.event_id = e.id WHERE";
     const params: unknown[] = [];
-    if (email) { params.push(email); queryText += ` o.attendee_email = $${params.length}`; }
+    if (email) { params.push(email); queryText += ` r.attendee_email = $${params.length}`; }
     if (reference) {
       if (params.length > 0) queryText += " OR";
       params.push(reference);
-      queryText += ` o.reference = $${params.length}`;
+      queryText += ` r.reference = $${params.length}`;
     }
 
     const result = await query(queryText, params);
-    return ok({ orders: result.rows });
+    return ok({ registrations: result.rows });
   } catch (e) { console.error("Lookup error:", e); return err("Internal server error", 500); }
 };

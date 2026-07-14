@@ -16,13 +16,15 @@ All agent-facing documentation lives under:
 |---|---|
 | [MISSION.md](.agents/MISSION.md) | Core mission and purpose of the Ticket platform |
 | [MVP.md](.agents/MVP.md) | Minimal viable product scope and roadmap |
+| [DEPLOY.md](.agents/DEPLOY.md) | Deployment instructions for local, Docker, and Cloudflare |
 
 ## How to Use
 
 1. **Start here** — read this file to understand where agent context is stored.
 2. **Read [MISSION.md](.agents/MISSION.md)** — understand the overarching goals of the project (ticket sales, liquidity, support).
 3. **Read [MVP.md](.agents/MVP.md)** — understand the current free/no-payments scope and what is being built first.
-4. **All edits, feature work, and decisions** should align with the mission and stay within the MVP scope unless explicitly directed otherwise.
+4. **Read [DEPLOY.md](.agents/DEPLOY.md)** — understand how to build, deploy, and run the project locally or in production.
+5. **All edits, feature work, and decisions** should align with the mission and stay within the MVP scope unless explicitly directed otherwise.
 
 ## Agent Harness Instructions
 

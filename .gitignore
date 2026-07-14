@@ -35,8 +35,6 @@ yarn-error.log*
 # local file uploads (MVP storage)
 public/uploads/
 
-# bun lockfile (generated)
-bun.lock
 
 # Cloudflare adapter generated files
 .wrangler/.neon/

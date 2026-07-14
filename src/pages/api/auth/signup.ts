@@ -34,7 +34,7 @@ export const POST: APIRoute = async (context) => {
     const passwordHash = await hashPassword(password);
 
     const result = await query(
-      "INSERT INTO organizers (email, name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, name, avatar_url, pix_key, pix_key_type, created_at",
+      "INSERT INTO organizers (email, name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, name, avatar_url, created_at",
       [normalizedEmail, name, passwordHash]
     );
     const organizer = result.rows[0];

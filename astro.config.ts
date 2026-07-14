@@ -5,7 +5,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { validateEnv } from "./src/lib/env";
 
-validateEnv();
+// Only validate env vars during build/start — not during astro check, astro dev, etc.
+if (process.argv.some((arg) => arg === "build" || arg === "start")) {
+  validateEnv();
+}
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 

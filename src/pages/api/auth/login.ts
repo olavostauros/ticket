@@ -24,7 +24,7 @@ export const POST: APIRoute = async (context) => {
 
     const { email, password } = parsed.data;
 
-    const result = await query("SELECT id, email, name, avatar_url, pix_key, pix_key_type, password_hash FROM organizers WHERE email = $1", [email.toLowerCase()]);
+    const result = await query("SELECT id, email, name, avatar_url, password_hash FROM organizers WHERE email = $1", [email.toLowerCase()]);
     const organizer = result.rows[0];
     if (!organizer) return err("Email ou senha incorretos.", 401, "auth_failed");
 

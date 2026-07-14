@@ -44,8 +44,6 @@ jobs:
           # secrets are set via `npx wrangler secret put` in Cloudflare.
           DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder' }}
           JWT_SECRET: placeholder
-          ABACATEPAY_API_KEY: placeholder
-          ABACATEPAY_WEBHOOK_SECRET: placeholder
           RESEND_API_KEY: placeholder
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://ticket-bbm.pages.dev' }}
 

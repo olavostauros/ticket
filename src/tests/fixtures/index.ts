@@ -33,8 +33,6 @@ export function buildOrganizer(overrides: Partial<Organizer> = {}): Organizer {
     email: `organizer${_orgCounter}@example.com`,
     name: `Organizer ${_orgCounter}`,
     avatar_url: null,
-    pix_key: null,
-    pix_key_type: null,
     verified_at: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
@@ -129,7 +127,7 @@ export function buildTicket(overrides: Partial<Ticket> = {}): Ticket {
   const id = overrides.id ?? `ticket-${_ticketCounter}`;
   return {
     id,
-    order_id: "reg-1",
+    registration_id: "reg-1",
     event_id: "event-1",
     tier_id: "tier-1",
     organizer_id: "org-1",

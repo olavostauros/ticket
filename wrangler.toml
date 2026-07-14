@@ -10,8 +10,6 @@
 #
 # Set secrets with:
 #   npx wrangler secret put JWT_SECRET
-#   npx wrangler secret put ABACATEPAY_API_KEY
-#   npx wrangler secret put ABACATEPAY_WEBHOOK_SECRET
 #   npx wrangler secret put RESEND_API_KEY
 #   npx wrangler secret put PUBLIC_APP_URL
 #

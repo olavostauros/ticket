@@ -41,12 +41,10 @@ export const PATCH: APIRoute = async (context) => {
 
   try {
     await query(
-      "UPDATE organizers SET name = $1, avatar_url = $2, pix_key = $3, pix_key_type = $4 WHERE id = $5",
+      "UPDATE organizers SET name = $1, avatar_url = $2 WHERE id = $3",
       [
         parsed.data.name,
         parsed.data.avatar_url,
-        parsed.data.pix_key,
-        parsed.data.pix_key_type,
         user.id,
       ]
     );
