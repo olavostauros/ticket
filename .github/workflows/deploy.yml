@@ -38,7 +38,9 @@ jobs:
         run: bun test
 
       - name: Build for Cloudflare
-        run: bun run build
+        run: |
+          bunx astro build --config astro.config.cloudflare.ts
+          bun run postbuild:cloudflare
         env:
           # These are needed at build time for env validation; actual
           # secrets are set via `npx wrangler secret put` in Cloudflare.
@@ -48,7 +50,6 @@ jobs:
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://ticket-bbm.pages.dev' }}
 
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy dist/ --project-name ticket
+        run: npx wrangler pages deploy dist/ --project-name ticket
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
