@@ -174,7 +174,37 @@ bun run test:smoke
 
 ---
 
-## 7. Key Notes
+## 7. CI/CD Pipeline
+
+The repo has a single GitHub Actions workflow (`.github/workflows/deploy.yml`) that runs on **push to `main`** or **manual dispatch** (`workflow_dispatch`).
+
+### Workflow steps
+
+1. **Run tests** — `bun test` with `RESEND_API_KEY` injected (falls back to `'placeholder'` if no repo secret is set).
+2. **Diagnostic** — prints `CLOUDFLARE_API_TOKEN: SET` or `NOT SET` (never the actual value).
+3. **Skip deploy** — runs if the Cloudflare token is missing (prints a skip message).
+4. **Build** — Astro build with Cloudflare adapter + postbuild.
+5. **Deploy** — `npx wrangler pages deploy` — **only runs when** `CLOUDFLARE_API_TOKEN` is present.
+
+### Important GHA rules for `if:` conditions
+
+- **Do NOT wrap `secrets.X` in `${{ }}` inside `if:`.** Use `env.VAR_NAME` instead, with the secret injected into the step's `env:` block:
+  ```yaml
+  - name: Deploy
+    if: env.CLOUDFLARE_API_TOKEN != ''
+    run: npx wrangler pages deploy dist/ --project-name ticket
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  ```
+- **YAML colons inside `run:` strings** cause parse errors. Use block scalar (`|`) when the string contains `: `.
+
+### Fork PR safety
+
+Fork PRs do not have access to repo secrets. The workflow still runs fully (tests + build) but **skips the deploy step** when the token is absent, preventing a hard failure.
+
+---
+
+## 8. Key Notes
 
 - **The Node adapter is the default** for local dev / Docker. Switching to the Cloudflare adapter is only needed for edge deployment.
 - **Cron auth**: Cloudflare Cron Triggers handle authentication internally. Local dev cron endpoints are unprotected.
