@@ -27,6 +27,11 @@ export async function sendEmail({ to, subject, html }: SendEmailParams): Promise
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
+    if (process.env.NODE_ENV === 'test') {
+      // Skip sending during tests
+      console.warn('RESEND_API_KEY missing — skipping email send in test environment');
+      return;
+    }
     throw new Error("Missing RESEND_API_KEY environment variable");
   }
 
