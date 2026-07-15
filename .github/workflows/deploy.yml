@@ -36,6 +36,23 @@ jobs:
 
       - name: Run tests
         run: bun test
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY || 'placeholder' }}
+
+      # Diagnostic: does not print secret value
+      - name: Log CLOUDFLARE_API_TOKEN presence
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ]; then
+            echo "CLOUDFLARE_API_TOKEN: NOT SET"
+          else
+            echo "CLOUDFLARE_API_TOKEN: SET"
+          fi
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Skip deploy — missing Cloudflare token
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
+        run: echo "Skipping deploy: CLOUDFLARE_API_TOKEN is not set."
 
       - name: Build for Cloudflare
         run: |
@@ -50,6 +67,7 @@ jobs:
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL || 'https://ticket-bbm.pages.dev' }}
 
       - name: Deploy to Cloudflare Pages
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         run: npx wrangler pages deploy dist/ --project-name ticket
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
