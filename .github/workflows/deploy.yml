@@ -52,7 +52,8 @@ jobs:
 
       - name: Skip deploy — missing Cloudflare token
         if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
-        run: echo "Skipping deploy: CLOUDFLARE_API_TOKEN is not set."
+        run: |
+          echo "Skipping deploy: CLOUDFLARE_API_TOKEN is not set."
 
       - name: Build for Cloudflare
         run: |
